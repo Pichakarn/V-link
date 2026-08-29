@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-Link - โซเชียลแฟนด้อม</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome สำหรับไอคอน -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-0 sm:p-4">
+
+    <!-- กรอบโทรศัพท์มือถือ (Phone Frame) -->
+    <div class="w-full max-w-sm h-screen sm:h-[844px] bg-slate-900 sm:border-8 sm:border-slate-800 sm:rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative">
+        
+        <!-- Header ด้านบนสุดของแอป S-Link -->
+        <div class="px-4 py-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex justify-between items-center z-20">
+            <div class="flex items-center space-x-2">
+                <a href="home.html" class="text-slate-400 hover:text-white mr-1"><i class="fa-solid fa-chevron-left"></i></a>
+                <h1 class="text-lg font-black tracking-wider bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 bg-clip-text text-transparent">S-LINK</h1>
+            </div>
+            <div id="header-action-slot"></div>
+        </div>
+
+        <!-- พื้นที่แสดงเนื้อหาหลักแต่ละแถบ (Tabs Content) -->
+        <div id="tab-content-container" class="flex-1 overflow-y-auto pb-16 relative">
+            
+            <!-- 1. หน้าหลัก (Feed & Create Post) -->
+            <div id="tab-home" class="tab-pane space-y-4 p-4">
+                <!-- ปุ่มเปิดฟอร์มสร้างโพสต์ -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex items-center space-x-3 shadow-md">
+                    <div id="my-avatar-feed" class="w-10 h-10 rounded-full bg-rose-600/30 border border-rose-500 flex items-center justify-center text-rose-400 font-bold overflow-hidden flex-shrink-0">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <button onclick="openCreatePostModal()" class="flex-1 bg-slate-950 border border-slate-800 text-slate-400 text-sm text-left px-4 py-2.5 rounded-full hover:border-rose-500/50 transition-all">
+                        คุณกำลังคิดอะไรอยู่ หรืออยากแชร์รูปภาพอะไร?
+                    </button>
+                </div>
+
+                <!-- ฟีดโพสต์ทั้งหมด -->
+                <div id="feed-posts-list" class="space-y-4">
+                    <!-- โพสต์จะถูกโหลดมาแสดงที่นี่ -->
+                    <div class="text-center text-slate-500 py-10 text-sm">กำลังโหลดฟีดโพสต์...</div>
+                </div>
+            </div>
+
+            <!-- 2. หน้าค้นหา (Search Users & Follow System) -->
+            <div id="tab-search" class="tab-pane hidden p-4 space-y-4">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="search-user-input" oninput="handleSearchUser(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-rose-500 text-slate-200 placeholder:text-slate-600" placeholder="ค้นหาด้วย @username...">
+                </div>
+
+                <div id="search-results-list" class="space-y-2">
+                    <p class="text-center text-slate-500 text-xs py-8">พิมพ์ @username เพื่อค้นหาเพื่อนใน S-Link</p>
+                </div>
+            </div>
+
+            <!-- 3. หน้าแชท (Real-time Chat & Notifications) -->
+            <div id="tab-chat" class="tab-pane hidden flex flex-col h-full">
+                <div class="p-4 border-b border-slate-800">
+                    <h2 class="text-sm font-bold text-slate-200">แชทกับเพื่อนที่ติดตามกัน</h2>
+                </div>
+                <div id="chat-friends-list" class="divide-y divide-slate-800/50 overflow-y-auto flex-1">
+                    <!-- รายชื่อเพื่อนที่ฟอลโลว์กันแล้ว -->
+                    <div class="p-4 text-center text-slate-500 text-xs">ยังไม่มีเพื่อนที่ติดตามกันทั้งสองฝ่าย</div>
+                </div>
+            </div>
+
+            <!-- 4. หน้าโปรไฟล์ (My Profile & Edit Info) -->
+            <div id="tab-profile" class="tab-pane hidden p-4 space-y-6">
+                <!-- ข้อมูลโปรไฟล์ส่วนตัว -->
+                <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 text-center relative space-y-3">
+                    <button onclick="openEditProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full text-xs">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+
+                    <div id="profile-avatar-container" class="w-20 h-20 mx-auto rounded-full bg-rose-600/20 border-2 border-rose-500 flex items-center justify-center text-rose-400 text-2xl overflow-hidden shadow-lg">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+
+                    <div>
+                        <h2 id="profile-display-name" class="text-base font-bold text-white">กำลังโหลด...</h2>
+                        <p id="profile-username" class="text-xs text-rose-400">@username</p>
+                    </div>
+
+                    <p id="profile-bio" class="text-xs text-slate-300 px-4 leading-relaxed">ยังไม่มีไบโอ</p>
+
+                    <!-- สถิติผู้ติดตาม / กำลังติดตาม -->
+                    <div class="flex justify-center space-x-8 pt-2 border-t border-slate-800/80 text-xs">
+                        <div>
+                            <span id="profile-stat-posts" class="font-bold text-white block text-sm">0</span>
+                            <span class="text-slate-500">โพสต์</span>
+                        </div>
+                        <div class="cursor-default">
+                            <span id="profile-stat-followers" class="font-bold text-white block text-sm">0</span>
+                            <span class="text-slate-500">ผู้ติดตาม</span>
+                        </div>
+                        <div onclick="openFollowingListModal()" class="cursor-pointer hover:opacity-80 transition-all">
+                            <span id="profile-stat-following" class="font-bold text-white block text-sm">0</span>
+                            <span class="text-slate-500 underline">กำลังติดตาม</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- โพสต์ของฉัน -->
+                <div>
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">โพสต์ทั้งหมดของฉัน</h3>
+                    <div id="my-profile-posts-list" class="space-y-4">
+                        <div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีโพสต์</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- แถบเมนูด้านล่างสุดของ S-Link (4 แถบหลัก) -->
+        <div class="h-14 bg-slate-900 border-t border-slate-800 flex justify-around items-center px-2 absolute bottom-0 left-0 right-0 z-20">
+            <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center justify-center flex-1 text-rose-500 transition-all">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">หน้าหลัก</span>
+            </button>
+            <button onclick="switchTab('search')" id="nav-search" class="flex flex-col items-center justify-center flex-1 text-slate-500 hover:text-slate-300 transition-all">
+                <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">ค้นหา</span>
+            </button>
+            <button onclick="switchTab('chat')" id="nav-chat" class="flex flex-col items-center justify-center flex-1 text-slate-500 hover:text-slate-300 transition-all relative">
+                <i class="fa-solid fa-comment-dots text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">แชท</span>
+                <span id="chat-badge-dot" class="hidden absolute top-1 right-5 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+            </button>
+            <button onclick="switchTab('profile')" id="nav-profile" class="flex flex-col items-center justify-center flex-1 text-slate-500 hover:text-slate-300 transition-all">
+                <i class="fa-solid fa-user text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">โปรไฟล์</span>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Modal: สร้างโพสต์ใหม่ (โหลดรูปจากแกลลอรี่ ไม่จำกัดขนาด แสดงแบบเต็มไร้ขอบดำ) -->
+    <div id="create-post-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-white">สร้างโพสต์ใหม่</h3>
+                <button onclick="closeCreatePostModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <textarea id="new-post-caption" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-500 text-slate-200 placeholder:text-slate-600 resize-none" placeholder="เขียนแคปชันของคุณ..."></textarea>
+
+            <!-- พื้นที่เลือกรูปและแสดงภาพเต็มแบบไร้ขอบดำ -->
+            <div>
+                <input type="file" id="post-image-file" accept="image/*" onchange="previewSelectedImage(event)" class="hidden">
+                <button type="button" onclick="document.getElementById('post-image-file').click()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-image"></i> <span>เลือกรูปภาพจากแกลลอรี่</span>
+                </button>
+            </div>
+
+            <div id="image-preview-wrapper" class="hidden w-full rounded-2xl overflow-hidden max-h-60 bg-slate-950 relative">
+                <img id="image-preview-tag" src="" alt="Preview" class="w-full h-full object-cover">
+                <button type="button" onclick="removeSelectedImage()" class="absolute top-2 right-2 bg-slate-900/80 text-rose-400 p-1.5 rounded-full text-xs hover:bg-slate-900"><i class="fa-solid fa-trash"></i></button>
+            </div>
+
+            <button onclick="submitNewPost()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-rose-600/20">
+                โพสต์ลง S-Link
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: แสดงหน้าโปรไฟล์เต็มจอของผู้อื่น (หรือตัวเอง) -->
+    <div id="user-profile-modal" class="hidden fixed inset-0 bg-slate-950 z-50 flex flex-col overflow-hidden">
+        <div class="px-4 py-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+            <button onclick="closeUserProfileModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+            <h2 id="modal-profile-title" class="text-sm font-bold text-white">โปรไฟล์ผู้ใช้</h2>
+            <div class="w-5"></div>
+        </div>
+        <div id="modal-profile-body" class="flex-1 overflow-y-auto p-4 space-y-6">
+            <!-- ข้อมูลโปรไฟล์คนอื่นแบบเต็มจอ -->
+        </div>
+    </div>
+
+    <!-- Modal: หน้าต่างคอมเมนต์ใต้โพสต์ -->
+    <div id="comments-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
+        <div class="w-full max-w-sm h-[70vh] sm:h-[500px] bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl">
+            <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-white">ความคิดเห็น</h3>
+                <button onclick="closeCommentsModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="comments-list-container" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <!-- รายการคอมเมนต์ -->
+            </div>
+            <div class="p-3 bg-slate-900 border-t border-slate-800 flex items-center space-x-2">
+                <input type="text" id="comment-input-text" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 text-slate-200 placeholder:text-slate-600" placeholder="พิมพ์ความคิดเห็น...">
+                <button onclick="sendComment()" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">ส่ง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: แก้ไขข้อมูลโปรไฟล์ตัวเอง -->
+    <div id="edit-profile-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-white">แก้ไขโปรไฟล์</h3>
+                <button onclick="closeEditProfileModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">ชื่อที่แสดงในแอป (Display Name)</label>
+                <input type="text" id="edit-display-name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Username (@)</label>
+                <input type="text" id="edit-username" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 text-slate-200" placeholder="username">
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">ไบโอ (Bio)</label>
+                <textarea id="edit-bio" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none focus:border-rose-500 text-slate-200 resize-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">ลิงก์รูปโปรไฟล์ (URL หรืออัปโหลด)</label>
+                <input type="text" id="edit-avatar-url" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 text-slate-200" placeholder="https://...">
+            </div>
+            <button onclick="saveProfileChanges()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-rose-600/20">
+                บันทึกการเปลี่ยนแปลง
+            </button>
+        </div>
+    </div>
+
+    <!-- Script การทำงานหลักทั้งหมดของ S-Link -->
+    <script type="module">
+        import { supabase } from './supabase-config.js';
+
+        let currentUser = null;
+        let selectedFileBase64 = null;
+        let activePostIdForComment = null;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const savedUser = localStorage.getItem('vlink_user');
+            if (!savedUser) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = JSON.parse(savedUser);
+
+            // โหลดข้อมูลโปรไฟล์ของตัวเองมาผูกกับระบบ
+            await loadMyProfileData();
+            await loadFeedPosts();
+        });
+
+        // สลับแถบการใช้งาน (Tabs)
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            ['home', 'search', 'chat', 'profile'].forEach(name => {
+                const btn = document.getElementById(`nav-${name}`);
+                if (name === tabName) {
+                    btn.className = "flex flex-col items-center justify-center flex-1 text-rose-500 transition-all";
+                } else {
+                    btn.className = "flex flex-col items-center justify-center flex-1 text-slate-500 hover:text-slate-300 transition-all";
+                }
+            });
+
+            if (tabName === 'profile') {
+                loadMyProfileData();
+                loadMyProfilePosts();
+            } else if (tabName === 'chat') {
+                loadChatFriendsList();
+            }
+        };
+
+        // Modal ควบคุมการสร้างโพสต์
+        window.openCreatePostModal = () => document.getElementById('create-post-modal').classList.remove('hidden');
+        window.closeCreatePostModal = () => document.getElementById('create-post-modal').classList.add('hidden');
+
+        // ฟังก์ชันเลือกรูปจากเครื่อง แสดงผลแบบเต็มไร้ขอบดำ
+        window.previewSelectedImage = function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedFileBase64 = e.target.result;
+                    const previewTag = document.getElementById('image-preview-tag');
+                    previewTag.src = selectedFileBase64;
+                    document.getElementById('image-preview-wrapper').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        window.removeSelectedImage = function() {
+            selectedFileBase64 = null;
+            document.getElementById('post-image-file').value = '';
+            document.getElementById('image-preview-wrapper').classList.add('hidden');
+        }
+
+        // โหลดข้อมูลโปรไฟล์ตัวเองจากตารางหรือ localStorage
+        async function loadMyProfileData() {
+            try {
+                const { data, error } = await supabase
+                    .from('s_link_all')
+                    .select('*')
+                    .eq('type', 'user_profile')
+                    .eq('email', currentUser.email)
+                    .single();
+
+                if (data) {
+                    currentUser.name = data.name || currentUser.name;
+                    currentUser.username = data.username || currentUser.email.split('@')[0];
+                    currentUser.bio = data.bio || 'ยังไม่มีไบโอ';
+                    currentUser.avatar_url = data.avatar_url || '';
+                } else {
+                    // ถ้ายังไม่มี ให้สร้างเรกคอร์ดโปรไฟล์เริ่มต้นใน Supabase
+                    currentUser.username = currentUser.email.split('@')[0];
+                    currentUser.bio = 'แฟนคลับตัวยงใน V-Link';
+                    currentUser.avatar_url = '';
+                    await supabase.from('s_link_all').insert([{
+                        type: 'user_profile',
+                        email: currentUser.email,
+                        name: currentUser.name,
+                        username: currentUser.username,
+                        bio: currentUser.bio,
+                        avatar_url: currentUser.avatar_url
+                    }]);
+                }
+
+                // อัปเดต UI หน้าโปรไฟล์
+                document.getElementById('profile-display-name').innerText = currentUser.name;
+                document.getElementById('profile-username').innerText = `@${currentUser.username}`;
+                document.getElementById('profile-bio').innerText = currentUser.bio;
+                
+                const avatarContainer = document.getElementById('profile-avatar-container');
+                if (currentUser.avatar_url) {
+                    avatarContainer.innerHTML = `<img src="${currentUser.avatar_url}" class="w-full h-full object-cover">`;
+                }
+
+                // โหลดสถิติจำนวนผู้ติดตาม / กำลังติดตาม แบบเรียลไทม์
+                updateProfileStats();
+            } catch (err) {
+                console.error("Error loading profile:", err);
+            }
+        }
+
+        async function updateProfileStats() {
+            // นับผู้ติดตาม
+            const { count: followersCount } = await supabase
+                .from('s_link_all')
+                .select('*', { count: 'exact', head: true })
+                .eq('type', 'follow')
+                .eq('target_email', currentUser.email);
+
+            // นับกำลังติดตาม
+            const { count: followingCount } = await supabase
+                .from('s_link_all')
+                .select('*', { count: 'exact', head: true })
+                .eq('type', 'follow')
+                .eq('email', currentUser.email);
+
+            // นับโพสต์
+            const { count: postsCount } = await supabase
+                .from('s_link_all')
+                .select('*', { count: 'exact', head: true })
+                .eq('type', 'post')
+                .eq('email', currentUser.email);
+
+            document.getElementById('profile-stat-followers').innerText = followersCount || 0;
+            document.getElementById('profile-stat-following').innerText = followingCount || 0;
+            document.getElementById('profile-stat-posts').innerText = postsCount || 0;
+        }
+
+        // โพสต์ข้อความและรูปภาพลง S-Link
+        window.submitNewPost = async function() {
+            const caption = document.getElementById('new-post-caption').value.trim();
+            if (!caption && !selectedFileBase64) {
+                alert("กรุณากรอกแคปชันหรือเลือกรูปภาพอย่างน้อย 1 อย่าง");
+                return;
+            }
+
+            // อัปโหลดรูปผ่าน Cloudinary Preset "V-link" (ถ้ามีรูปเลือกมา)
+            let imageUrl = '';
+            if (selectedFileBase64) {
+                const formData = new FormData();
+                // แปลง base64 เป็น blob สำหรับอัปโหลด
+                const res = await fetch(selectedFileBase64);
+                const blob = await res.blob();
+                formData.append('file', blob);
+                formData.append('upload_preset', 'V-link');
+
+                try {
+                    const cloudRes = await fetch('https://api.cloudinary.com/v1_1/ncpkgyfz/image/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const cloudData = await cloudRes.json();
+                    if (cloudData.secure_url) {
+                        imageUrl = cloudData.secure_url;
+                    }
+                } catch (err) {
+                    console.error("Cloudinary upload error:", err);
+                }
+            }
+
+            // บันทึกลง Supabase ตาราง s_link_all
+            const { error } = await supabase.from('s_link_all').insert([{
+                type: 'post',
+                email: currentUser.email,
+                name: currentUser.name,
+                username: currentUser.username || currentUser.email.split('@')[0],
+                avatar_url: currentUser.avatar_url || '',
+                caption: caption,
+                image_url: imageUrl,
+                likes_count: 0
+            }]);
+
+            if (!error) {
+                alert("โพสต์สำเร็จ!");
+                document.getElementById('new-post-caption').value = '';
+                removeSelectedImage();
+                closeCreatePostModal();
+                loadFeedPosts();
+            } else {
+                alert("เกิดข้อผิดพลาดในการโพสต์");
+            }
+        };
+
+        // โหลดฟีดโพสต์หน้าหลัก
+        async function loadFeedPosts() {
+            const container = document.getElementById('feed-posts-list');
+            const { data: posts, error } = await supabase
+                .from('s_link_all')
+                .select('*')
+                .eq('type', 'post')
+                .order('created_at', { ascending: false });
+
+            if (error || !posts || posts.length === 0) {
+                container.innerHTML = `<div class="text-center text-slate-500 py-10 text-sm">ยังไม่มีโพสต์ในฟีด</div>`;
+                return;
+            }
+
+            let html = '';
+            for (const post of posts) {
+                html += `
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 space-y-3 shadow-lg">
+                        <div class="flex items-center space-x-3 cursor-pointer" onclick="viewUserProfile('${post.email}')">
+                            <div class="w-9 h-9 rounded-full bg-rose-600/30 border border-rose-500 flex items-center justify-center text-rose-400 font-bold overflow-hidden flex-shrink-0">
+                                ${post.avatar_url ? `<img src="${post.avatar_url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user text-xs"></i>'}
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${post.name}</h4>
+                                <p class="text-[10px] text-rose-400">@${post.username || 'user'}</p>
+                            </div>
+                        </div>
+                        ${post.caption ? `<p class="text-xs text-slate-200 leading-relaxed">${post.caption}</p>` : ''}
+                        ${post.image_url ? `
+                            <div class="w-full rounded-2xl overflow-hidden bg-slate-950 max-h-96">
+                                <img src="${post.image_url}" class="w-full h-full object-cover">
+                            </div>
+                        ` : ''}
+                        <div class="flex items-center space-x-4 pt-2 border-t border-slate-800/60 text-xs text-slate-400">
+                            <button onclick="toggleLikePost('${post.id}')" class="flex items-center space-x-1 hover:text-rose-500 transition-all">
+                                <i class="fa-regular fa-heart"></i> <span>${post.likes_count || 0}</span>
+                            </button>
+                            <button onclick="openCommentsModal('${post.id}')" class="flex items-center space-x-1 hover:text-rose-500 transition-all">
+                                <i class="fa-regular fa-comment"></i> <span>คอมเมนต์</span>
+                            </button>
+                            <button onclick="sharePost('${post.id}')" class="flex items-center space-x-1 hover:text-rose-500 transition-all">
+                                <i class="fa-solid fa-share"></i> <span>แชร์</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        // ระบบกดใจโพสต์
+        window.toggleLikePost = async function(postId) {
+            const { data: post } = await supabase.from('s_link_all').select('likes_count').eq('id', postId).single();
+            if (post) {
+                const newLikes = (post.likes_count || 0) + 1;
+                await supabase.from('s_link_all').update({ likes_count: newLikes }).eq('id', postId);
+                loadFeedPosts();
+            }
+        };
+
+        // ระบบแชร์โพสต์
+        window.sharePost = function(postId) {
+            alert("คัดลอกลิงก์โพสต์เรียบร้อยแล้ว!");
+        };
+
+        // ค้นหาผู้ใช้จาก @username แบบเรียลไทม์
+        window.handleSearchUser = async function(query) {
+            const listContainer = document.getElementById('search-results-list');
+            if (!query || query.trim() === '') {
+                listContainer.innerHTML = `<p class="text-center text-slate-500 text-xs py-8">พิมพ์ @username เพื่อค้นหาเพื่อนใน S-Link</p>`;
+                return;
+            }
+
+            const cleanQuery = query.replace('@', '').trim();
+            const { data: users, error } = await supabase
+                .from('s_link_all')
+                .select('*')
+                .eq('type', 'user_profile')
+                .ilike('username', `%${cleanQuery}%`);
+
+            if (error || !users || users.length === 0) {
+                listContainer.innerHTML = `<p class="text-center text-slate-500 text-xs py-8">ไม่พบผู้ใช้งานนี้</p>`;
+                return;
+            }
+
+            let html = '';
+            for (const u of users) {
+                if (u.email === currentUser.email) continue; // ไม่แสดงตัวเอง
+
+                // เช็คว่าฟอลโลว์อยู่หรือยัง
+                const { data: followCheck } = await supabase
+                    .from('s_link_all')
+                    .select('*')
+                    .eq('type', 'follow')
+                    .eq('email', currentUser.email)
+                    .eq('target_email', u.email)
+                    .single();
+
+                const isFollowing = !!followCheck;
+
+                html += `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center justify-between shadow-md">
+                        <div class="flex items-center space-x-3 cursor-pointer flex-1" onclick="viewUserProfile('${u.email}')">
+                            <div class="w-10 h-10 rounded-full bg-rose-600/30 border border-rose-500 flex items-center justify-center text-rose-400 font-bold overflow-hidden flex-shrink-0">
+                                ${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user text-xs"></i>'}
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${u.name}</h4>
+                                <p class="text-[10px] text-rose-400">@${u.username}</p>
+                            </div>
+                        </div>
+                        <button onclick="toggleFollowUser('${u.email}', ${isFollowing})" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all ${isFollowing ? 'bg-slate-800 text-slate-300' : 'bg-rose-600 text-white'}">
+                            ${isFollowing ? 'กำลังติดตาม' : 'ติดตาม'}
+                        </button>
+                    </div>
+                `;
+            }
+            listContainer.innerHTML = html;
+        };
+
+        // กดติดตาม / เลิกติดตาม
+        window.toggleFollowUser = async function(targetEmail, isFollowing) {
+            if (isFollowing) {
+                await supabase.from('s_link_all').delete().eq('type', 'follow').eq('email', currentUser.email).eq('target_email', targetEmail);
+            } else {
+                await supabase.from('s_link_all').insert([{
+                    type: 'follow',
+                    email: currentUser.email,
+                    target_email: targetEmail
+                }]);
+            }
+            // รีเฟรชผลการค้นหาปัจจุบัน
+            const query = document.getElementById('search-user-input').value;
+            handleSearchUser(query);
+        };
+
+        // แสดงโปรไฟล์แบบเต็มจอเมื่อคลิกดูโปรไฟล์ใครก็ตาม
+        window.viewUserProfile = async function(email) {
+            const modal = document.getElementById('user-profile-modal');
+            const body = document.getElementById('modal-profile-body');
+            const title = document.getElementById('modal-profile-title');
+
+            modal.classList.remove('hidden');
+            body.innerHTML = `<div class="text-center text-slate-500 py-10 text-xs">กำลังโหลดข้อมูลโปรไฟล์...</div>`;
+
+            // ดึงข้อมูลโปรไฟล์เป้าหมาย
+            const { data: userProfile } = await supabase
+                .from('s_link_all')
+                .select('*')
+                .eq('type', 'user_profile')
+                .eq('email', email)
+                .single();
+
+            if (!userProfile) {
+                body.innerHTML = `<div class="text-center text-slate-500 py-10 text-xs">ไม่พบข้อมูลโปรไฟล์</div>`;
+                return;
+            }
+
+            title.innerText = `@${userProfile.username}`;
+
+            // นับสถิติของเป้าหมาย
+            const { count: followersCount } = await supabase.from('s_link_all').select('*', { count: 'exact', head: true }).eq('type', 'follow').eq('target_email', email);
+            const { count: followingCount } = await supabase.from('s_link_all').select('*', { count: 'exact', head: true }).eq('type', 'follow').eq('email', email);
+            const { count: postsCount } = await supabase.from('s_link_all').select('*', { count: 'exact', head: true }).eq('type', 'post').eq('email', email);
+
+            // เช็คสถานะฟอลโลว์
+            const { data: followCheck } = await supabase.from('s_link_all').select('*').eq('type', 'follow').eq('email', currentUser.email).eq('target_email', email).single();
+            const isFollowing = !!followCheck;
+
+            // ดึงโพสต์ทั้งหมดของเป้าหมาย
+            const { data: userPosts } = await supabase.from('s_link_all').select('*').eq('type', 'post').eq('email', email).order('created_at', { ascending: false });
+
+            let postsHtml = '';
+            if (userPosts && userPosts.length > 0) {
+                for (const p of userPosts) {
+                    postsHtml += `
+                        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 space-y-3 shadow-lg">
+                            ${p.caption ? `<p class="text-xs text-slate-200 leading-relaxed">${p.caption}</p>` : ''}
+                            ${p.image_url ? `<div class="w-full rounded-2xl overflow-hidden bg-slate-950 max-h-96"><img src="${p.image_url}" class="w-full h-full object-cover"></div>` : ''}
+                        </div>
+                    `;
+                }
+            } else {
+                postsHtml = `<div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีโพสต์</div>`;
+            }
+
+            body.innerHTML = `
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 text-center relative space-y-3 shadow-xl">
+                    <div class="w-20 h-20 mx-auto rounded-full bg-rose-600/20 border-2 border-rose-500 flex items-center justify-center text-rose-400 text-2xl overflow-hidden shadow-lg">
+                        ${userProfile.avatar_url ? `<img src="${userProfile.avatar_url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user"></i>'}
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-white">${userProfile.name}</h2>
+                        <p class="text-xs text-rose-400">@${userProfile.username}</p>
+                    </div>
+                    <p class="text-xs text-slate-300 px-4 leading-relaxed">${userProfile.bio || 'ยังไม่มีไบโอ'}</p>
+
+                    ${email !== currentUser.email ? `
+                        <button onclick="toggleFollowUserFromModal('${email}', ${isFollowing})" class="w-full py-2 rounded-xl text-xs font-bold transition-all ${isFollowing ? 'bg-slate-800 text-slate-300' : 'bg-rose-600 text-white shadow-lg shadow-rose-600/20'}">
+                            ${isFollowing ? 'กำลังติดตามแล้ว' : 'ติดตาม'}
+                        </button>
+                    ` : ''}
+
+                    <div class="flex justify-center space-x-8 pt-2 border-t border-slate-800/80 text-xs">
+                        <div><span class="font-bold text-white block text-sm">${postsCount || 0}</span><span class="text-slate-500">โพสต์</span></div>
+                        <div><span class="font-bold text-white block text-sm">${followersCount || 0}</span><span class="text-slate-500">ผู้ติดตาม</span></div>
+                        <div><span class="font-bold text-white block text-sm">${followingCount || 0}</span><span class="text-slate-500">กำลังติดตาม</span></div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">โพสต์ทั้งหมด</h3>
+                    ${postsHtml}
+                </div>
+            `;
+        };
+
+        window.closeUserProfileModal = () => document.getElementById('user-profile-modal').classList.add('hidden');
+
+        window.toggleFollowUserFromModal = async function(targetEmail, isFollowing) {
+            await toggleFollowUser(targetEmail, isFollowing);
+            viewUserProfile(targetEmail); // รีเฟรชหน้าโปรไฟล์เต็มจอ
+        };
+
+        // โหลดรายชื่อเพื่อนในหน้าแชท (ต้องฟอลโลว์กันทั้งสองฝ่าย)
+        async function loadChatFriendsList() {
+            const container = document.getElementById('chat-friends-list');
+            
+            // หาคนที่ฉันติดตาม
+            const { data: myFollowing } = await supabase.from('s_link_all').select('target_email').eq('type', 'follow').eq('email', currentUser.email);
+            if (!myFollowing || myFollowing.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs">ยังไม่มีเพื่อนที่ติดตามกันทั้งสองฝ่าย</div>`;
+                return;
+            }
+
+            const followingEmails = myFollowing.map(f => f.target_email);
+
+            // หาคนที่ติดตามฉันกลับด้วย
+            const { data: mutualFollows } = await supabase.from('s_link_all').select('email').eq('type', 'follow').eq('target_email', currentUser.email).in('email', followingEmails);
+
+            if (!mutualFollows || mutualFollows.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs">ยังไม่มีเพื่อนที่ติดตามกันทั้งสองฝ่าย</div>`;
+                return;
+            }
+
+            const mutualEmails = mutualFollows.map(m => m.email);
+            const { data: friendProfiles } = await supabase.from('s_link_all').select('*').eq('type', 'user_profile').in('email', mutualEmails);
+
+            if (!friendProfiles || friendProfiles.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs">ยังไม่มีเพื่อนที่ติดตามกันทั้งสองฝ่าย</div>`;
+                return;
+            }
+
+            let html = '';
+            for (const f of friendProfiles) {
+                html += `
+                    <div onclick="openChatRoom('${f.email}', '${f.name}')" class="p-4 flex items-center space-x-3 cursor-pointer hover:bg-slate-900/50 transition-all">
+                        <div class="w-10 h-10 rounded-full bg-rose-600/30 border border-rose-500 flex items-center justify-center text-rose-400 font-bold overflow-hidden flex-shrink-0">
+                            ${f.avatar_url ? `<img src="${f.avatar_url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user text-xs"></i>'}
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-xs font-bold text-white">${f.name}</h4>
+                            <p class="text-[10px] text-slate-400">@${f.username}</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        // หน้าต่างเปิดแชทห้องส่วนตัว (จำลองห้องแชท)
+        window.openChatRoom = async function(friendEmail, friendName) {
+            const container = document.getElementById('tab-chat');
+            container.innerHTML = `
+                <div class="p-3 border-b border-slate-800 flex items-center space-x-3 bg-slate-900">
+                    <button onclick="loadChatFriendsList(); switchTab('chat');" class="text-slate-400 hover:text-white"><i class="fa-solid fa-chevron-left"></i></button>
+                    <h3 class="text-xs font-bold text-white">${friendName}</h3>
+                </div>
+                <div id="chat-messages-box" class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div class="text-center text-slate-500 text-xs py-4">เริ่มส่งข้อความหากันได้เลย</div>
+                </div>
+                <div class="p-3 border-t border-slate-800 bg-slate-900 flex items-center space-x-2">
+                    <input type="text" id="chat-msg-input" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 text-slate-200 placeholder:text-slate-600" placeholder="พิมพ์ข้อความ...">
+                    <button onclick="sendChatMessage('${friendEmail}')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">ส่ง</button>
+                </div>
+            `;
+            fetchChatMessages(friendEmail);
+        };
+
+        async function fetchChatMessages(friendEmail) {
+            const box = document.getElementById('chat-messages-box');
+            const { data: msgs } = await supabase
+                .from('s_link_all')
+                .select('*')
+                .eq('type', 'chat')
+                .or(`and(email.eq.${currentUser.email},target_email.eq.${friendEmail}),and(email.eq.${friendEmail},target_email.eq.${currentUser.email})`)
+                .order('created_at', { ascending: true });
+
+            if (!msgs || msgs.length === 0) return;
+
+            let html = '';
+            for (const m of msgs) {
+                const isMe = m.email === currentUser.email;
+                html += `
+                    <div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-[75%] px-3 py-2 rounded-2xl text-xs ${isMe ? 'bg-rose-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'}">
+                            ${m.caption}
+                        </div>
+                    </div>
+                `;
+            }
+            box.innerHTML = html;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        window.sendChatMessage = async function(friendEmail) {
+            const input = document.getElementById('chat-msg-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            await supabase.from('s_link_all').insert([{
+                type: 'chat',
+                email: currentUser.email,
+                target_email: friendEmail,
+                caption: text
+            }]);
+
+            input.value = '';
+            fetchChatMessages(friendEmail);
+        };
+
+        // โหลดโพสต์ในหน้าโปรไฟล์ของฉัน
+        async function loadMyProfilePosts() {
+            const container = document.getElementById('my-profile-posts-list');
+            const { data: posts } = await supabase.from('s_link_all').select('*').eq('type', 'post').eq('email', currentUser.email).order('created_at', { ascending: false });
+
+            if (!posts || posts.length === 0) {
+                container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีโพสต์</div>`;
+                return;
+            }
+
+            let html = '';
+            for (const p of posts) {
+                html += `
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 space-y-3 shadow-lg">
+                        ${p.caption ? `<p class="text-xs text-slate-200 leading-relaxed">${p.caption}</p>` : ''}
+                        ${p.image_url ? `<div class="w-full rounded-2xl overflow-hidden bg-slate-950 max-h-96"><img src="${p.image_url}" class="w-full h-full object-cover"></div>` : ''}
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        // แก้ไขโปรไฟล์
+        window.openEditProfileModal = function() {
+            document.getElementById('edit-display-name').value = currentUser.name || '';
+            document.getElementById('edit-username').value = currentUser.username || '';
+            document.getElementById('edit-bio').value = currentUser.bio || '';
+            document.getElementById('edit-avatar-url').value = currentUser.avatar_url || '';
+            document.getElementById('edit-profile-modal').classList.remove('hidden');
+        };
+        window.closeEditProfileModal = () => document.getElementById('edit-profile-modal').classList.add('hidden');
+
+        window.saveProfileChanges = async function() {
+            const newName = document.getElementById('edit-display-name').value.trim();
+            const newUsername = document.getElementById('edit-username').value.trim();
+            const newBio = document.getElementById('edit-bio').value.trim();
+            const newAvatar = document.getElementById('edit-avatar-url').value.trim();
+
+            await supabase.from('s_link_all').update({
+                name: newName,
+                username: newUsername,
+                bio: newBio,
+                avatar_url: newAvatar
+            }).eq('type', 'user_profile').eq('email', currentUser.email);
+
+            currentUser.name = newName;
+            currentUser.username = newUsername;
+            currentUser.bio = newBio;
+            currentUser.avatar_url = newAvatar;
+            localStorage.setItem('vlink_user', JSON.stringify(currentUser));
+
+            closeEditProfileModal();
+            loadMyProfileData();
+            alert("อัปเดตโปรไฟล์สำเร็จ!");
+        };
+
+        // โมดอลดูรายชื่อคนที่กำลังติดตาม
+        window.openFollowingListModal = async function() {
+            const modal = document.getElementById('user-profile-modal');
+            const body = document.getElementById('modal-profile-body');
+            const title = document.getElementById('modal-profile-title');
+
+            modal.classList.remove('hidden');
+            title.innerText = "คนที่ฉันกำลังติดตาม";
+            body.innerHTML = `<div class="text-center text-slate-500 py-10 text-xs">กำลังโหลด...</div>`;
+
+            const { data: following } = await supabase.from('s_link_all').select('target_email').eq('type', 'follow').eq('email', currentUser.email);
+            if (!following || following.length === 0) {
+                body.innerHTML = `<div class="text-center text-slate-500 py-10 text-xs">คุณยังไม่ได้ติดตามใครเลย</div>`;
+                return;
+            }
+
+            const emails = following.map(f => f.target_email);
+            const { data: profiles } = await supabase.from('s_link_all').select('*').eq('type', 'user_profile').in('email', emails);
+
+            let html = '';
+            for (const u of profiles) {
+                html += `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center justify-between shadow-md cursor-pointer" onclick="viewUserProfile('${u.email}')">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-rose-600/30 border border-rose-500 flex items-center justify-center text-rose-400 font-bold overflow-hidden">
+                                ${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user text-xs"></i>'}
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${u.name}</h4>
+                                <p class="text-[10px] text-rose-400">@${u.username}</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
+                    </div>
+                `;
+            }
+            body.innerHTML = `<div class="space-y-2 p-2">${html}</div>`;
+        };
+
+        // คอมเมนต์ใต้โพสต์
+        window.openCommentsModal = async function(postId) {
+            activePostIdForComment = postId;
+            document.getElementById('comments-modal').classList.remove('hidden');
+            fetchComments(postId);
+        };
+        window.closeCommentsModal = () => document.getElementById('comments-modal').classList.add('hidden');
+
+        async function fetchComments(postId) {
+            const container = document.getElementById('comments-list-container');
+            const { data: comments } = await supabase.from('s_link_all').select('*').eq('type', 'comment').eq('target_email', postId).order('created_at', { ascending: true });
+
+            if (!comments || comments.length === 0) {
+                container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีความคิดเห็น เป็นคนแรกที่คอมเมนต์สิ!</div>`;
+                return;
+            }
+
+            let html = '';
+            for (const c of comments) {
+                html += `
+                    <div class="bg-slate-950/50 border border-slate-800/60 rounded-xl p-2.5 space-y-1">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold text-white">${c.name}</span>
+                            <span class="text-[10px] text-rose-400">@${c.username}</span>
+                        </div>
+                        <p class="text-xs text-slate-300">${c.caption}</p>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        window.sendComment = async function() {
+            const input = document.getElementById('comment-input-text');
+            const text = input.value.trim();
+            if (!text || !activePostIdForComment) return;
+
+            await supabase.from('s_link_all').insert([{
+                type: 'comment',
+                target_email: activePostIdForComment,
+                email: currentUser.email,
+                name: currentUser.name,
+                username: currentUser.username,
+                caption: text
+            }]);
+
+            input.value = '';
+            fetchComments(activePostIdForComment);
+        };
+    </script>
+</body>
+</html>
