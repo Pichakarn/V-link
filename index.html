@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-Link - เข้าสู่ระบบ / สมัครสมาชิก</title>
+    <!-- ใช้ Tailwind CSS สำหรับจัดหน้าเว็บ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        
+        <!-- Header Title -->
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold tracking-wider text-rose-500">V-LINK</h1>
+            <p id="form-subtitle" class="text-sm text-slate-400 mt-1">เข้าสู่ระบบเพื่อใช้งานแฟนด้อมของคุณ</p>
+        </div>
+
+        <!-- Tab Switcher (สลับระหว่าง Login / Register) -->
+        <div class="flex bg-slate-800 rounded-lg p-1 mb-6">
+            <button id="tab-login" onclick="switchTab('login')" class="flex-1 py-2 text-sm font-semibold rounded-md bg-rose-600 text-white transition-all">เข้าสู่ระบบ</button>
+            <button id="tab-register" onclick="switchTab('register')" class="flex-1 py-2 text-sm font-semibold rounded-md text-slate-400 transition-all">สมัครสมาชิก</button>
+        </div>
+
+        <!-- ฟอร์มเข้าสู่ระบบ / สมัครสมาชิก -->
+        <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-4">
+            <div id="name-field-container" class="hidden">
+                <label class="block text-xs font-medium text-slate-400 mb-1">ชื่อผู้ใช้ (Username)</label>
+                <input type="text" id="username" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rose-500 text-slate-200" placeholder="ตั้งชื่อของคุณ">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">อีเมล (Email)</label>
+                <input type="email" id="email" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rose-500 text-slate-200" placeholder="user@email.com">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">รหัสผ่าน (Password)</label>
+                <input type="password" id="password" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rose-500 text-slate-200" placeholder="••••••••">
+            </div>
+
+            <button type="submit" id="submit-btn" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-rose-600/20">
+                เข้าสู่ระบบ
+            </button>
+        </form>
+
+        <!-- ส่วนแสดงผลจำลองหลังเข้าสู่ระบบสำเร็จ (เอาไว้ทดสอบการมองเห็นแอปต่างๆ) -->
+        <div id="dashboard-preview" class="hidden mt-6 pt-6 border-t border-slate-800 text-center">
+            <p class="text-sm text-slate-400 mb-2">ยินดีต้อนรับ, <span id="user-display-name" class="font-bold text-white"></span></p>
+            <p class="text-xs text-rose-400 mb-4">สถานะสิทธิ์ (Role): <span id="user-role-badge" class="font-semibold uppercase"></span></p>
+            
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="p-2 bg-slate-800 rounded">S-link / X-link / U-link</div>
+                <div class="p-2 bg-slate-800 rounded">Bank / Store</div>
+                <div id="agency-app-btn" class="hidden p-2 bg-purple-900/50 border border-purple-700 text-purple-200 rounded col-span-2 font-semibold">✨ แอป Agency (ค่ายของคุณ)</div>
+                <div id="admin-app-btn" class="hidden p-2 bg-red-900/50 border border-red-700 text-red-200 rounded col-span-2 font-semibold">🔒 แอป Admin (ระบบจัดการสูงสุด)</div>
+            </div>
+
+            <button onclick="logout()" class="mt-4 text-xs text-slate-400 hover:text-rose-400 underline">ออกจากระบบ</button>
+        </div>
+
+    </div>
+
+    <!-- Script สำหรับควบคุมการทำงานระบบล็อกอิน -->
+    <script type="module">
+        import { supabase } from './supabase-config.js'
+
+        let currentMode = 'login'; // 'login' หรือ 'register'
+
+        window.switchTab = function(mode) {
+            currentMode = mode;
+            const loginBtn = document.getElementById('tab-login');
+            const regBtn = document.getElementById('tab-register');
+            const subtitle = document.getElementById('form-subtitle');
+            const nameField = document.getElementById('name-field-container');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (mode === 'login') {
+                loginBtn.className = "flex-1 py-2 text-sm font-semibold rounded-md bg-rose-600 text-white transition-all";
+                regBtn.className = "flex-1 py-2 text-sm font-semibold rounded-md text-slate-400 transition-all";
+                subtitle.innerText = "เข้าสู่ระบบเพื่อใช้งานแฟนด้อมของคุณ";
+                nameField.classList.add('hidden');
+                submitBtn.innerText = "เข้าสู่ระบบ";
+            } else {
+                regBtn.className = "flex-1 py-2 text-sm font-semibold rounded-md bg-rose-600 text-white transition-all";
+                loginBtn.className = "flex-1 py-2 text-sm font-semibold rounded-md text-slate-400 transition-all";
+                subtitle.innerText = "สร้างบัญชีผู้ใช้ใหม่ในระบบ V-Link";
+                nameField.classList.remove('hidden');
+                submitBtn.innerText = "สมัครสมาชิก";
+            }
+        }
+
+        window.handleAuth = async function(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const username = document.getElementById('username').value.trim();
+
+            // กำหนดแอดมินตามที่คุณกำหนด
+            const ADMIN_EMAIL = "esmedevalois@gmail.com";
+            const ADMIN_PASS = "adminesme";
+
+            if (currentMode === 'login') {
+                // ตรวจสอบว่าเป็นแอดมินตามเงื่อนไขหรือไม่
+                let role = 'user';
+                if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
+                    role = 'admin';
+                }
+
+                // บันทึกสถานะลง localStorage จำลองการล็อกอิน
+                const userData = { email, role, name: email.split('@')[0] };
+                localStorage.setItem('vlink_user', JSON.stringify(userData));
+                
+                alert("เข้าสู่ระบบสำเร็จ!");
+                showDashboard(userData);
+
+            } else {
+                // สมัครสมาชิก (เบื้องต้นจำลองบันทึกเป็นยูเซอร์ทั่วไป)
+                if(!username) {
+                    alert("กรุณากรอกชื่อผู้ใช้");
+                    return;
+                }
+                const userData = { email, role: 'user', name: username };
+                localStorage.setItem('vlink_user', JSON.stringify(userData));
+                
+                alert("สมัครสมาชิกสำเร็จ!");
+                showDashboard(userData);
+            }
+        }
+
+        function showDashboard(user) {
+            document.getElementById('auth-form').classList.add('hidden');
+            document.querySelector('.flex.bg-slate-800').classList.add('hidden');
+            document.getElementById('form-subtitle').classList.add('hidden');
+            
+            document.getElementById('dashboard-preview').classList.remove('hidden');
+            document.getElementById('user-display-name').innerText = user.name;
+            document.getElementById('user-role-badge').innerText = user.role;
+
+            // ตรวจสอบการแสดงผลปุ่ม Agency และ Admin ตามเงื่อนไขสิทธิ์
+            const adminBtn = document.getElementById('admin-app-btn');
+            const agencyBtn = document.getElementById('agency-app-btn');
+
+            if (user.role === 'admin') {
+                adminBtn.classList.remove('hidden');
+                agencyBtn.classList.remove('hidden'); // แอดมินสามารถเห็น Agency ได้ด้วย
+            } else if (user.role === 'agency') {
+                agencyBtn.classList.remove('hidden'); // ยูเซอร์ที่แอดมินมอบสิทธิ์ Agency ให้
+            }
+        }
+
+        window.logout = function() {
+            localStorage.removeItem('vlink_user');
+            location.reload();
+        }
+
+        // เช็คสถานะตอนโหลดหน้าเว็บ
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('vlink_user');
+            if (savedUser) {
+                showDashboard(JSON.parse(savedUser));
+            }
+        });
+    </script>
+</body>
+</html>
