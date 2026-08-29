@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-Link - เข้าสู่ระบบ / สมัครสมาชิก</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome สำหรับไอคอน -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- กรอบหน้าต่าง UI สไตล์โมเดิร์น -->
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800/80 rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+        
+        <!-- แสงนีออนตกแต่งด้านหลัง -->
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-rose-600/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- Header Title -->
+        <div class="text-center mb-8 relative z-10">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-600 to-purple-600 text-white text-2xl shadow-lg shadow-rose-600/30 mb-3">
+                <i class="fa-solid fa-link"></i>
+            </div>
+            <h1 class="text-2xl font-black tracking-wider text-white">V-LINK</h1>
+            <p id="form-subtitle" class="text-xs text-slate-400 mt-1"></p>
+        </div>
+
+        <!-- Tab Switcher (สลับระหว่าง Login / Register) -->
+        <div class="flex bg-slate-950/60 p-1.5 rounded-xl border border-slate-800 mb-6 relative z-10">
+            <button id="tab-login" onclick="switchTab('login')" class="flex-1 py-2.5 text-xs font-bold rounded-lg bg-rose-600 text-white transition-all shadow-md">เข้าสู่ระบบ</button>
+            <button id="tab-register" onclick="switchTab('register')" class="flex-1 py-2.5 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition-all">สมัครสมาชิก</button>
+        </div>
+
+        <!-- ฟอร์มเข้าสู่ระบบ / สมัครสมาชิก -->
+        <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-4 relative z-10">
+            <div id="name-field-container" class="hidden">
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">ชื่อผู้ใช้ (Username)</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 text-sm"><i class="fa-solid fa-user"></i></span>
+                    <input type="text" id="username" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-rose-500 text-slate-200 transition-all placeholder:text-slate-600" placeholder="">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">อีเมล (Email)</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 text-sm"><i class="fa-solid fa-envelope"></i></span>
+                    <input type="email" id="email" required class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-rose-500 text-slate-200 transition-all placeholder:text-slate-600" placeholder="">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">รหัสผ่าน (Password)</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 text-sm"><i class="fa-solid fa-lock"></i></span>
+                    <input type="password" id="password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-rose-500 text-slate-200 transition-all placeholder:text-slate-600" placeholder="">
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-lg shadow-rose-600/25 active:scale-[0.98] mt-2">
+                เข้าสู่ระบบ
+            </button>
+        </form>
+
+        <!-- Footer Note -->
+        <p class="text-center text-[11px] text-slate-500 mt-6 relative z-10">V-Link Ecosystem © 2026</p>
+    </div>
+
+    <!-- Script ควบคุมการทำงานระบบล็อกอินและการเปลี่ยนหน้าไป home.html -->
+    <script type="module">
+        import { supabase } from './supabase-config.js'
+
+        let currentMode = 'login'; // 'login' หรือ 'register'
+
+        window.switchTab = function(mode) {
+            currentMode = mode;
+            const loginBtn = document.getElementById('tab-login');
+            const regBtn = document.getElementById('tab-register');
+            const subtitle = document.getElementById('form-subtitle');
+            const nameField = document.getElementById('name-field-container');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (mode === 'login') {
+                loginBtn.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-rose-600 text-white transition-all shadow-md";
+                regBtn.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition-all";
+                subtitle.innerText = "";
+                nameField.classList.add('hidden');
+                submitBtn.innerText = "เข้าสู่ระบบ";
+            } else {
+                regBtn.className = "flex-1 py-2.5 text-xs font-bold rounded-lg bg-rose-600 text-white transition-all shadow-md";
+                loginBtn.className = "flex-1 py-2.5 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition-all";
+                subtitle.innerText = "สร้างบัญชีผู้ใช้ใหม่ในระบบ V-Link";
+                nameField.classList.remove('hidden');
+                submitBtn.innerText = "สมัครสมาชิก";
+            }
+        }
+
+        window.handleAuth = async function(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const username = document.getElementById('username').value.trim();
+
+            // กำหนดแอดมินตามที่คุณกำหนด
+            const ADMIN_EMAIL = "esmedevalois@gmail.com";
+            const ADMIN_PASS = "adminesme";
+
+            if (currentMode === 'login') {
+                let role = 'user';
+                if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
+                    role = 'admin';
+                }
+
+                // บันทึกสถานะลง localStorage
+                const userData = { email, role, name: email.split('@')[0] };
+                localStorage.setItem('vlink_user', JSON.stringify(userData));
+                
+                // เด้งไปหน้า home.html ทันที
+                window.location.href = 'home.html';
+
+            } else {
+                if(!username) {
+                    alert("กรุณากรอกชื่อผู้ใช้");
+                    return;
+                }
+                const userData = { email, role: 'user', name: username };
+                localStorage.setItem('vlink_user', JSON.stringify(userData));
+                
+                // เด้งไปหน้า home.html ทันที
+                window.location.href = 'home.html';
+            }
+        }
+
+        // หากผู้ใช้เคยล็อกอินอยู่แล้ว ให้ข้ามหน้า Login ไปหน้า home.html ได้เลย
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('vlink_user');
+            if (savedUser) {
+                window.location.href = 'home.html';
+            }
+        });
+    </script>
+</body>
+</html>
