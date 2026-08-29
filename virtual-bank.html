@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual BANK</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+    </style>
+</head>
+<body class="bg-[#0b0714] text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-[#120d20] border border-purple-500/20 rounded-[2.5rem] shadow-2xl overflow-hidden backdrop-blur-2xl p-5">
+        
+        <!-- Top Bar -->
+        <div class="flex justify-between items-center mb-5 px-1">
+            <button class="bg-[#1b142e] border border-purple-500/20 text-slate-300 text-xs px-4 py-2 rounded-full font-medium flex items-center gap-1.5 hover:border-pink-500/40 transition-all cursor-pointer">
+                <span>←</span> หน้าหลัก
+            </button>
+            <div class="bg-[#1b142e] border border-purple-500/20 text-pink-400 text-xs px-4 py-2 rounded-full font-bold tracking-wider">
+                VIRTUAL BANK
+            </div>
+        </div>
+
+        <!-- Account Info Card -->
+        <div class="bg-gradient-to-br from-[#1a112d] via-[#150f24] to-[#251238] border border-purple-500/30 rounded-3xl p-5 shadow-inner mb-5 relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-pink-500/10 rounded-full blur-xl pointer-events-none"></div>
+
+            <div class="mb-3 relative z-10">
+                <span class="text-xs text-slate-400">เจ้าของบัญชี: </span>
+                <input type="text" id="accountNameInput" value="ciiderydem" 
+                    class="bg-transparent text-sm font-semibold text-white border-b border-dashed border-pink-500/40 focus:outline-none focus:border-pink-400 px-1 w-36 inline-block">
+            </div>
+
+            <div class="mb-4 relative z-10">
+                <span class="text-xs text-slate-400 block mb-0.5">เลขบัญชี (10 หลัก)</span>
+                <div id="accountNumberDisplay" class="text-xl font-mono tracking-widest text-white font-bold">---</div>
+            </div>
+
+            <div class="relative z-10 pt-3 border-t border-purple-500/20">
+                <span class="text-xs text-slate-400 block mb-0.5">ยอดเงินคงเหลือ</span>
+                <div class="text-2xl font-bold text-emerald-400 flex items-baseline gap-1">
+                    <span id="accountBalance">800,046.48</span> 
+                    <span class="text-sm font-normal text-emerald-300">G</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Buttons Switcher -->
+        <div class="grid grid-cols-2 gap-3 mb-5">
+            <button onclick="switchTab('transfer')" id="tabTransferBtn" 
+                class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold py-3 px-4 rounded-2xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 text-sm transition-all cursor-pointer">
+                <span>💸</span> โอนเงิน
+            </button>
+            <button onclick="switchTab('contacts')" id="tabContactsBtn" 
+                class="bg-[#1b142e] border border-purple-500/20 text-slate-300 font-medium py-3 px-4 rounded-2xl hover:bg-[#231a3b] flex items-center justify-center gap-2 text-sm transition-all cursor-pointer">
+                <span>📖</span> สมุดรายชื่อ
+            </button>
+        </div>
+
+        <!-- Dynamic Content Section -->
+        <div id="sectionTransfer" class="bg-[#161025] border border-purple-500/20 rounded-3xl p-5 space-y-4">
+            <div class="flex items-center gap-2 text-amber-400 text-sm font-semibold">
+                <span>⚡</span> ทำรายการโอนเงิน
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-xs text-slate-400 block">เลขบัญชีปลายทาง (10 หลัก)</label>
+                <input type="text" id="targetAccount" placeholder="ระบุเลขบัญชี 10 หลัก" maxlength="10"
+                    class="w-full bg-[#110c1c] border border-purple-500/20 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 font-mono transition-all">
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-xs text-slate-400 block">จำนวนเงิน (Galleon)</label>
+                <div class="relative">
+                    <input type="number" id="transferAmount" placeholder="0.00"
+                        class="w-full bg-[#110c1c] border border-purple-500/20 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 font-mono transition-all">
+                    <div class="absolute right-4 top-3 text-emerald-400 text-sm font-bold">G</div>
+                </div>
+            </div>
+
+            <button onclick="handleTransfer()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-emerald-900/30 transition-all cursor-pointer text-sm">
+                ยืนยันการโอนเงิน
+            </button>
+        </div>
+
+        <!-- Contacts Section (Hidden by default) -->
+        <div id="sectionContacts" class="hidden bg-[#161025] border border-purple-500/20 rounded-3xl p-5 space-y-4">
+            <div class="flex items-center gap-2 text-pink-400 text-sm font-semibold">
+                <span>📖</span> สมุดรายชื่อผู้ติดต่อ
+            </div>
+
+            <div class="bg-[#110c1c] p-3.5 rounded-2xl border border-purple-500/20 space-y-2.5">
+                <h3 class="text-xs font-semibold text-pink-300">บันทึกรายชื่อใหม่</h3>
+                <input type="text" id="contactAlias" placeholder="ชื่อที่จำได้ (เช่น เพื่อน, ร้านค้า)" 
+                    class="w-full bg-[#161025] border border-purple-500/20 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-500">
+                <input type="text" id="contactAccNum" placeholder="เลขบัญชี 10 หลัก" maxlength="10"
+                    class="w-full bg-[#161025] border border-purple-500/20 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 font-mono">
+                <button onclick="saveContact()" class="w-full bg-purple-600/30 hover:bg-purple-600/50 text-pink-200 text-xs font-semibold py-2 rounded-xl transition-all border border-purple-500/30 cursor-pointer">
+                    บันทึกรายชื่อ
+                </button>
+            </div>
+
+            <div class="space-y-2">
+                <h3 class="text-xs font-semibold text-slate-400">รายชื่อที่บันทึกไว้</h3>
+                <div id="contactList" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    <!-- Dynamic Contacts -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Slip Modal -->
+    <div id="slipModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-[#130d22] border border-purple-500/30 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative space-y-5">
+            <div class="text-center border-b border-purple-500/10 pb-4">
+                <div class="w-12 h-12 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold shadow-lg">✓</div>
+                <h2 class="text-base font-bold text-white">โอนเงินสำเร็จ</h2>
+                <p id="slipDateTime" class="text-[11px] text-slate-400 mt-0.5"></p>
+            </div>
+
+            <div class="bg-[#1b122e] p-4 rounded-2xl border border-purple-500/10 space-y-3 text-xs">
+                <div class="flex justify-between">
+                    <span class="text-slate-400">ผู้โอน</span>
+                    <span id="slipSenderName" class="font-medium text-white text-right"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">เลขบัญชีผู้โอน</span>
+                    <span id="slipSenderAcc" class="font-mono text-slate-300"></span>
+                </div>
+                <div class="border-t border-purple-500/10 pt-2 flex justify-between">
+                    <span class="text-slate-400">ผู้รับ</span>
+                    <span id="slipReceiverName" class="font-medium text-pink-300 text-right"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">เลขบัญชีผู้รับ</span>
+                    <span id="slipReceiverAcc" class="font-mono text-slate-300"></span>
+                </div>
+                <div class="border-t border-purple-500/10 pt-3 flex justify-between items-center">
+                    <span class="text-slate-400">จำนวนเงิน</span>
+                    <span class="text-base font-bold text-emerald-400"><span id="slipAmount"></span> G</span>
+                </div>
+            </div>
+
+            <button onclick="closeSlip()" class="w-full bg-[#1b122e] hover:bg-[#231a3b] border border-purple-500/30 text-white font-semibold py-3 rounded-xl transition-all cursor-pointer text-xs">
+                ปิดหน้าจอ
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let myAccount = { number: '', balance: 800046.48 };
+        let contacts = [
+            { id: 1, alias: 'เพื่อนสนิท', accountNumber: '1234567890' },
+            { id: 2, alias: 'ร้านค้าออนไลน์', accountNumber: '9876543210' }
+        ];
+
+        function initAccount() {
+            let randomAcc = '';
+            for (let i = 0; i < 10; i++) { randomAcc += Math.floor(Math.random() * 10); }
+            myAccount.number = randomAcc;
+            document.getElementById('accountNumberDisplay').innerText = formatAccNum(myAccount.number);
+            renderContacts();
+        }
+
+        function formatAccNum(num) {
+            return num.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        }
+
+        function switchTab(tab) {
+            const transferSec = document.getElementById('sectionTransfer');
+            const contactsSec = document.getElementById('sectionContacts');
+            const tabTransferBtn = document.getElementById('tabTransferBtn');
+            const tabContactsBtn = document.getElementById('tabContactsBtn');
+
+            if (tab === 'transfer') {
+                transferSec.classList.remove('hidden');
+                contactsSec.classList.add('hidden');
+                
+                tabTransferBtn.className = "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold py-3 px-4 rounded-2xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 text-sm transition-all cursor-pointer";
+                tabContactsBtn.className = "bg-[#1b142e] border border-purple-500/20 text-slate-300 font-medium py-3 px-4 rounded-2xl hover:bg-[#231a3b] flex items-center justify-center gap-2 text-sm transition-all cursor-pointer";
+            } else {
+                transferSec.classList.add('hidden');
+                contactsSec.classList.remove('hidden');
+                
+                tabContactsBtn.className = "bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-2xl shadow-lg shadow-purple-900/30 flex items-center justify-center gap-2 text-sm transition-all cursor-pointer";
+                tabTransferBtn.className = "bg-[#1b142e] border border-purple-500/20 text-slate-300 font-medium py-3 px-4 rounded-2xl hover:bg-[#231a3b] flex items-center justify-center gap-2 text-sm transition-all cursor-pointer";
+            }
+        }
+
+        function renderContacts() {
+            const listContainer = document.getElementById('contactList');
+            listContainer.innerHTML = '';
+
+            if (contacts.length === 0) {
+                listContainer.innerHTML = '<p class="text-[11px] text-slate-500 text-center py-2">ยังไม่มีรายชื่อที่บันทึกไว้</p>';
+                return;
+            }
+
+            contacts.forEach(c => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between bg-[#161025] border border-purple-500/10 hover:border-pink-500/30 p-2.5 rounded-xl transition-all group";
+                item.innerHTML = `
+                    <div onclick="selectContact('${c.accountNumber}')" class="flex-1 cursor-pointer">
+                        <div class="text-xs font-medium text-slate-200 group-hover:text-pink-300 transition-colors">${c.alias}</div>
+                        <div class="text-[11px] font-mono text-slate-500">${formatAccNum(c.accountNumber)}</div>
+                    </div>
+                    <button onclick="deleteContact(event, ${c.id})" class="text-slate-500 hover:text-red-400 text-xs px-2 py-1 transition-colors cursor-pointer">✕</button>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function saveContact() {
+            const alias = document.getElementById('contactAlias').value.trim();
+            const accNum = document.getElementById('contactAccNum').value.trim();
+
+            if (!alias || !accNum) { alert('กรุณากรอกข้อมูลให้ครบถ้วน'); return; }
+            if (accNum.length !== 10) { alert('เลขบัญชีต้องมี 10 หลัก'); return; }
+
+            contacts.push({ id: Date.now(), alias: alias, accountNumber: accNum });
+            document.getElementById('contactAlias').value = '';
+            document.getElementById('contactAccNum').value = '';
+            renderContacts();
+        }
+
+        function deleteContact(e, id) {
+            e.stopPropagation();
+            contacts = contacts.filter(c => c.id !== id);
+            renderContacts();
+        }
+
+        function selectContact(accNum) {
+            document.getElementById('targetAccount').value = accNum;
+            switchTab('transfer');
+        }
+
+        function handleTransfer() {
+            const targetAcc = document.getElementById('targetAccount').value.trim();
+            const amountInput = document.getElementById('transferAmount').value;
+            const amount = parseFloat(amountInput);
+
+            if (!targetAcc || targetAcc.length !== 10) { alert('กรุณากรอกเลขบัญชีปลายทางให้ถูกต้อง (10 หลัก)'); return; }
+            if (isNaN(amount) || amount <= 0) { alert('กรุณากรอกจำนวนเงินให้ถูกต้อง'); return; }
+            if (amount > myAccount.balance) { alert('ยอดเงินในบัญชีของคุณไม่เพียงพอ'); return; }
+
+            myAccount.balance -= amount;
+            document.getElementById('accountBalance').innerText = myAccount.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            let receiverName = targetAcc;
+            const foundContact = contacts.find(c => c.accountNumber === targetAcc);
+            if (foundContact) {
+                receiverName = `${foundContact.alias} (${targetAcc})`;
+            } else {
+                receiverName = `บัญชีปลายทาง (${formatAccNum(targetAcc)})`;
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            document.getElementById('slipDateTime').innerText = `${dateStr} เวลา ${timeStr}`;
+            document.getElementById('slipSenderName').innerText = document.getElementById('accountNameInput').value;
+            document.getElementById('slipSenderAcc').innerText = formatAccNum(myAccount.number);
+            document.getElementById('slipReceiverName').innerText = receiverName;
+            document.getElementById('slipReceiverAcc').innerText = formatAccNum(targetAcc);
+            document.getElementById('slipAmount').innerText = amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            document.getElementById('slipModal').classList.remove('hidden');
+            document.getElementById('slipModal').classList.add('flex');
+        }
+
+        function closeSlip() {
+            document.getElementById('slipModal').classList.remove('flex');
+            document.getElementById('slipModal').classList.add('hidden');
+            document.getElementById('targetAccount').value = '';
+            document.getElementById('transferAmount').value = '';
+        }
+
+        window.onload = initAccount;
+    </script>
+</body>
+</html>
