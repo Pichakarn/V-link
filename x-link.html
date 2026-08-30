@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-Link | โซเชียลมีเดียแฟนด้อม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #000; color: #fff; font-family: sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between max-w-md mx-auto border-x border-zinc-800">
+
+    <!-- Header -->
+    <header class="sticky top-0 bg-black/80 backdrop-blur-md z-50 border-b border-zinc-800 p-4 flex justify-between items-center">
+        <h1 id="header-title" class="text-xl font-bold">หน้าหลัก</h1>
+        <a href="store.html" class="bg-pink-600 hover:bg-pink-700 text-white text-xs px-3 py-1.5 rounded-full font-semibold transition">
+            <i class="fa-solid fa-store mr-1"></i> ไปหน้า Store
+        </a>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto pb-20">
+
+        <!-- 1) หน้าหลัก (Home) -->
+        <div id="tab-home" class="tab-content active">
+            <!-- กล่องโพสต์ข้อความ -->
+            <div class="p-4 border-b border-zinc-800 flex gap-3">
+                <div class="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center font-bold">U</div>
+                <div class="flex-1">
+                    <textarea id="post-input" rows="3" placeholder="คุณกำลังคิดอะไรอยู่? (ใช้ # ได้เมื่อมีคนเริ่มใช้แล้ว)" class="w-full bg-black text-white placeholder-zinc-500 focus:outline-none resize-none text-sm"></textarea>
+                    
+                    <div id="image-preview-container" class="hidden relative mb-2">
+                        <img id="image-preview" src="" alt="Preview" class="rounded-xl max-h-48 object-cover w-full">
+                        <button onclick="removeImage()" class="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1 px-2 text-xs">✕</button>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-2 border-t border-zinc-800 pt-3">
+                        <label class="cursor-pointer text-pink-500 hover:text-pink-400">
+                            <i class="fa-regular fa-image text-lg"></i>
+                            <input type="file" id="post-image-file" accept="image/*" class="hidden" onchange="previewImage(event)">
+                        </label>
+                        <button onclick="createPost()" class="bg-white text-black font-bold px-4 py-1.5 rounded-full hover:bg-zinc-200 transition text-sm">โพสต์</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ฟีดโพสต์ -->
+            <div id="feed-container">
+                <!-- โพสต์จะถูก Render ที่นี่ -->
+            </div>
+        </div>
+
+        <!-- 2) หน้าค้นหา (Search) -->
+        <div id="tab-search" class="tab-content p-4">
+            <div class="relative mb-4">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-zinc-500"></i>
+                <input type="text" id="search-box" oninput="handleSearch()" placeholder="ค้นหา @username หรือ #hashtag" class="w-full bg-zinc-900 text-white pl-10 pr-4 py-2 rounded-full focus:outline-none border border-zinc-800 text-sm">
+            </div>
+
+            <!-- ผลการค้นหา Account -->
+            <div id="search-users-results" class="mb-6">
+                <h3 class="text-sm font-bold text-zinc-400 mb-2">แอคเคาท์ที่พบ</h3>
+                <div id="users-list" class="space-y-3"></div>
+            </div>
+
+            <!-- 10 อันดับแฮชแท็กยอดนิยม -->
+            <div>
+                <h3 class="text-sm font-bold text-zinc-400 mb-2">🔥 10 อันดับ # ยอดนิยม</h3>
+                <div id="trending-hashtags" class="space-y-2"></div>
+            </div>
+
+            <!-- ผลลัพธ์โพสต์ตามแฮชแท็กที่เลือก -->
+            <div id="hashtag-posts-section" class="mt-6 hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 id="current-hashtag-title" class="text-md font-bold text-pink-500"></h3>
+                    <button onclick="clearHashtagSearch()" class="text-xs text-zinc-500 hover:text-white">✕ ปิดผลการค้นหา</button>
+                </div>
+                <div id="hashtag-posts-list" class="space-y-0"></div>
+            </div>
+        </div>
+
+        <!-- 3) โปรไฟล์ (Profile) -->
+        <div id="tab-profile" class="tab-content">
+            <div class="p-4 border-b border-zinc-800">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="w-16 h-16 bg-pink-600 rounded-full flex items-center justify-center text-2xl font-bold">U</div>
+                    <button class="border border-zinc-700 px-4 py-1.5 rounded-full font-semibold text-sm text-zinc-300">แก้ไขโปรไฟล์</button>
+                </div>
+                <h2 id="profile-name" class="font-bold text-lg">My User Account</h2>
+                <p id="profile-username" class="text-zinc-500 text-sm">@my_username</p>
+                
+                <div class="flex gap-4 mt-3 text-sm">
+                    <!-- ผู้ติดตาม (ดึงจากตาราง followers คอลัมน์ xlink_followers และกดดูไม่ได้ตามบรีฟ) -->
+                    <div><span id="profile-followers" class="font-bold text-white">0</span> <span class="text-zinc-500">ผู้ติดตาม</span></div>
+                    <!-- กำลังติดตาม (กดดูรายชื่อได้) -->
+                    <div onclick="openFollowingModal()" class="cursor-pointer hover:underline"><span id="profile-following" class="font-bold text-white">5</span> <span class="text-zinc-500">กำลังติดตาม</span></div>
+                </div>
+            </div>
+
+            <!-- หมวดย่อยโปรไฟล์ -->
+            <div class="flex border-b border-zinc-800 text-sm font-semibold">
+                <button onclick="switchProfileTab('my-posts')" id="btn-my-posts" class="flex-1 py-3 text-center border-b-2 border-white">โพสต์ของฉัน</button>
+                <button onclick="switchProfileTab('liked-posts')" id="btn-liked-posts" class="flex-1 py-3 text-center text-zinc-500 border-b-2 border-transparent">โพสต์ที่ถูกใจ</button>
+            </div>
+
+            <div id="profile-posts-container">
+                <!-- โพสต์ในโปรไฟล์ -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal รายชื่อกำลังติดตาม -->
+    <div id="following-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-2xl p-4 max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-zinc-800">
+                <h3 class="font-bold text-sm">กำลังติดตาม</h3>
+                <button onclick="closeFollowingModal()" class="text-zinc-400 hover:text-white">✕</button>
+            </div>
+            <div id="following-list" class="overflow-y-auto space-y-3 flex-1">
+                <!-- รายชื่อผู้ที่ติดตาม -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 max-w-md w-full bg-black border-t border-zinc-800 flex justify-around py-3 z-50">
+        <button onclick="switchTab('home')" id="nav-home" class="text-white text-xl flex flex-col items-center"><i class="fa-solid fa-house"></i></button>
+        <button onclick="switchTab('search')" id="nav-search" class="text-zinc-500 text-xl flex flex-col items-center"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <button onclick="switchTab('profile')" id="nav-profile" class="text-zinc-500 text-xl flex flex-col items-center"><i class="fa-solid fa-user"></i></button>
+    </nav>
+
+    <script>
+        // --- ⚠️ CONFIG SUPABASE (ใส่ค่า URL และ Anon Key ของคุณที่นี่) ---
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+        // --- LOCAL DATA BACKUP & STATE ---
+        let currentUser = {
+            name: "My User Account",
+            username: "@my_username",
+            type: "user"
+        };
+
+        let followersCount = 0;
+        let posts = JSON.parse(localStorage.getItem('x_posts')) || [
+            { id: 1, author: "Star Entertainment", username: "@starentertainment", type: "agency", text: "ยินดีต้อนรับทุกคนเข้าสู่แพลตฟอร์ม X-Link อย่างเป็นทางการครับ! #หวีดผลงาน", image: "", likes: 45, reposts: 12, likedByMe: false, time: "10 นาทีที่แล้ว" },
+            { id: 2, author: "A (ศิลปินหนุ่มฮอต)", username: "@artist_a", type: "user", text: "วันนี้ซ้อมเต้นเหนื่อยมากกก ฝากติดตามผลงานใหม่ด้วยนะครับ #หวีดศิลปิน", image: "", likes: 88, reposts: 23, likedByMe: false, time: "1 ชั่วโมงที่แล้ว" },
+            { id: 3, author: "B (ดาราสาวสวย)", username: "@star_b", type: "user", text: "ทานมื้อเที่ยงกันยังคะทุกคน #หวีดศิลปิน", image: "", likes: 62, reposts: 10, likedByMe: false, time: "2 ชั่วโมงที่แล้ว" },
+            { id: 4, author: "Fanclub Official", username: "@fc_ablen", type: "user", text: "เคมีคือดีต่อใจมากกก #AB ต้องเข้าแล้วมุ้ยคู่จิ้นเบอร์หนึ่ง", image: "", likes: 150, reposts: 40, likedByMe: false, time: "3 ชั่วโมงที่แล้ว" }
+        ];
+
+        let followingList = [
+            { name: "Star Entertainment", username: "@starentertainment", type: "agency" },
+            { name: "A (ศิลปินหนุ่มฮอต)", username: "@artist_a", type: "user" },
+            { name: "B (ดาราสาวสวย)", username: "@star_b", type: "user" },
+            { name: "LUMISTAR Entertainment", username: "@lumistarent", type: "agency" },
+            { name: "K-Pop News TH", username: "@kpopnewsth", type: "user" }
+        ];
+
+        let activeProfileTab = 'my-posts';
+        let tempImageBase64 = "";
+
+        // --- INITIALIZE & FETCH FROM SUPABASE (TABLE: followers) ---
+        async function initFollowers() {
+            if (supabaseClient) {
+                try {
+                    // ดึงยอด xlink_followers จากตาราง followers
+                    const { data, error } = await supabaseClient
+                        .from('followers')
+                        .select('xlink_followers')
+                        .limit(1)
+                        .single();
+                    
+                    if (data && data.xlink_followers !== undefined) {
+                        followersCount = data.xlink_followers;
+                    } else {
+                        followersCount = parseInt(localStorage.getItem('x_followers_count')) || 120;
+                    }
+                } catch (err) {
+                    console.log("Fallback to localStorage due to network/config:", err);
+                    followersCount = parseInt(localStorage.getItem('x_followers_count')) || 120;
+                }
+            } else {
+                followersCount = parseInt(localStorage.getItem('x_followers_count')) || 120;
+            }
+            document.getElementById('profile-followers').innerText = followersCount.toLocaleString();
+            document.getElementById('profile-following').innerText = followingList.length;
+        }
+
+        // --- NAVIGATION TABS ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(el => el.classList.remove('text-white'));
+            document.querySelectorAll('nav button').forEach(el => el.classList.add('text-zinc-500'));
+
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            document.getElementById(`nav-${tabName}`).classList.remove('text-zinc-500');
+            document.getElementById(`nav-${tabName}`).classList.add('text-white');
+
+            const titles = { home: 'หน้าหลัก', search: 'สำรวจ', profile: 'โปรไฟล์' };
+            document.getElementById('header-title').innerText = titles[tabName];
+
+            if(tabName === 'profile') {
+                initFollowers();
+                renderProfilePosts();
+            }
+            if(tabName === 'search') {
+                renderTrendingHashtags();
+            }
+        }
+
+        // --- IMAGE PREVIEW ---
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    tempImageBase64 = e.target.result;
+                    document.getElementById('image-preview').src = tempImageBase64;
+                    document.getElementById('image-preview-container').classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeImage() {
+            tempImageBase64 = "";
+            document.getElementById('post-image-file').value = "";
+            document.getElementById('image-preview-container').classList.add('hidden');
+        }
+
+        // --- CREATE POST & NPC SYSTEM ---
+        function createPost() {
+            const text = document.getElementById('post-input').value.trim();
+            if(!text && !tempImageBase64) return;
+
+            // ตรวจสอบแฮชแท็กในข้อความ
+            const hashtagsInText = text.match(/#[\u0e00-\u0e7fa-zA-Z0-9_]+/g) || [];
+            
+            const newPost = {
+                id: Date.now(),
+                author: currentUser.name,
+                username: currentUser.username,
+                type: currentUser.type,
+                text: text,
+                image: tempImageBase64,
+                likes: 0,
+                reposts: 0,
+                likedByMe: false,
+                time: "เมื่อสักครู่"
+            };
+
+            posts.unshift(newPost);
+            saveAndRender();
+
+            // ล้างฟอร์มโพสต์
+            document.getElementById('post-input').value = "";
+            removeImage();
+
+            // 🤖 ระบบ NPC แฟนคลับ (แอคตายจาก Store ช่วยกดไลก์ รีโพสต์ และปั่นกระแสแฮชแท็ก)
+            triggerNpcInteractions(hashtagsInText);
+        }
+
+        function triggerNpcInteractions(usedHashtags) {
+            setTimeout(() => {
+                if (followersCount > 0) {
+                    // แฟนคลับ NPC ช่วยกดใจและรีโพสต์ให้โพสต์ล่าสุดของเรา
+                    posts.forEach(p => {
+                        if (p.username === currentUser.username) {
+                            p.likes += Math.floor(Math.random() * Math.min(followersCount, 10)) + 1;
+                            p.reposts += Math.floor(Math.random() * 3);
+                        }
+                    });
+                    saveAndRender();
+                }
+
+                // เงื่อนไข # : แฟนคลับ NPC จะนำแฮชแท็กที่ถูกใช้จริงแล้วไปโพสต์ปั่นกระแสต่อในหน้าค้นหา
+                if (usedHashtags.length > 0) {
+                    usedHashtags.forEach(tag => {
+                        const npcNames = ["มัมหมีน้อง A ✨", "แม่ยกสายเปย์", "ทีมหน้าจอรอฟิน", "แฟนคลับตัวยง", "บ้านคู่ซัพพอร์ต"];
+                        const randomNpc = npcNames[Math.floor(Math.random() * npcNames.length)];
+                        
+                        const npcPost = {
+                            id: Date.now() + Math.random(),
+                            author: randomNpc,
+                            username: "@npc_fan_" + Math.floor(Math.random() * 1000),
+                            type: "npc",
+                            text: `เห็นด้วยกับโพสต์นี้มากกก ${tag} คือที่สุดแล้วตอนนี้ ปังไม่ไหว!`,
+                            image: "",
+                            likes: Math.floor(Math.random() * 25) + 5,
+                            reposts: Math.floor(Math.random() * 8),
+                            likedByMe: false,
+                            time: "เมื่อสักครู่"
+                        };
+                        posts.push(npcPost);
+                    });
+                    saveAndRender();
+                }
+            }, 1200);
+        }
+
+        // --- LIKE & REPOST ---
+        function toggleLike(postId) {
+            const post = posts.find(p => p.id === postId);
+            if(post) {
+                if(post.likedByMe) {
+                    post.likes -= 1;
+                    post.likedByMe = false;
+                } else {
+                    post.likes += 1;
+                    post.likedByMe = true;
+                }
+                saveAndRender();
+            }
+        }
+
+        function repost(postId) {
+            const post = posts.find(p => p.id === postId);
+            if(post) {
+                post.reposts += 1;
+                saveAndRender();
+                alert("รีโพสต์สำเร็จ!");
+            }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('x_posts', JSON.stringify(posts));
+            renderFeed();
+            if(document.getElementById('tab-profile').classList.contains('active')) {
+                renderProfilePosts();
+            }
+        }
+
+        // --- RENDER FEED ---
+        function renderFeed() {
+            const container = document.getElementById('feed-container');
+            container.innerHTML = "";
+
+            posts.forEach(post => {
+                // หน้าหลักจะไม่แสดงโพสต์เดี่ยวๆ ของ NPC ล้วน แต่จะโชว์โพสต์ของ User และ Agency
+                if(post.type === 'npc') return;
+
+                const postEl = document.createElement('div');
+                postEl.className = "p-4 border-b border-zinc-800 flex gap-3";
+                postEl.innerHTML = `
+                    <div class="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center font-bold shrink-0">${post.author[0]}</div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-sm">${post.author}</span>
+                            ${post.type === 'agency' ? '<span class="bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">Agency</span>' : ''}
+                            <span class="text-zinc-500 text-xs">${post.username} · ${post.time}</span>
+                        </div>
+                        <p class="text-sm mt-1 whitespace-pre-wrap">${formatHashtags(post.text)}</p>
+                        ${post.image ? `<img src="${post.image}" class="mt-2 rounded-xl max-h-60 object-cover w-full">` : ''}
+                        
+                        <div class="flex justify-between text-zinc-500 text-sm mt-3 max-w-xs">
+                            <button onclick="toggleLike(${post.id})" class="flex items-center gap-1.5 ${post.likedByMe ? 'text-pink-600' : 'hover:text-pink-500'}">
+                                <i class="${post.likedByMe ? 'fa-solid' : 'fa-regular'} fa-heart"></i> <span>${post.likes}</span>
+                            </button>
+                            <button onclick="repost(${post.id})" class="flex items-center gap-1.5 hover:text-green-500">
+                                <i class="fa-solid fa-retweet"></i> <span>${post.reposts}</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(postEl);
+            });
+        }
+
+        function formatHashtags(text) {
+            return text.replace(/(#[\u0e00-\u0e7fa-zA-Z0-9_]+)/g, '<span class="text-pink-500 cursor-pointer hover:underline" onclick="searchTag(\'$1\')">$1</span>');
+        }
+
+        // --- SEARCH & HASHTAG TRENDS ---
+        function handleSearch() {
+            const query = document.getElementById('search-box').value.trim().toLowerCase();
+            const usersList = document.getElementById('users-list');
+            usersList.innerHTML = "";
+
+            if (!query) {
+                renderTrendingHashtags();
+                document.getElementById('search-users-results').classList.remove('hidden');
+                document.getElementById('hashtag-posts-section').classList.add('hidden');
+                return;
+            }
+
+            if (query.startsWith('#')) {
+                searchTag(query);
+                return;
+            }
+
+            // ค้นหา Account (@username หรือชื่อ)
+            const matchedUsers = followingList.filter(u => u.username.toLowerCase().includes(query) || u.name.toLowerCase().includes(query));
+            if (matchedUsers.length > 0) {
+                matchedUsers.forEach(u => {
+                    usersList.innerHTML += `
+                        <div class="flex justify-between items-center bg-zinc-900 p-3 rounded-xl">
+                            <div>
+                                <div class="font-bold text-sm">${u.name}</div>
+                                <div class="text-zinc-500 text-xs">${u.username}</div>
+                            </div>
+                            <span class="text-xs bg-zinc-800 px-3 py-1 rounded-full">${u.type === 'agency' ? 'Agency' : 'User'}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                usersList.innerHTML = `<div class="text-zinc-500 text-xs">ไม่พบแอคเคาท์นี้</div>`;
+            }
+
+            renderTrendingHashtags();
+        }
+
+        function renderTrendingHashtags() {
+            const trendingContainer = document.getElementById('trending-hashtags');
+            
+            // รวบรวมแฮชแท็กทั้งหมด (รวม NPC ที่ปั่นกระแส)
+            let tagCounts = {};
+            posts.forEach(p => {
+                const tags = p.text.match(/#[\u0e00-\u0e7fa-zA-Z0-9_]+/g) || [];
+                tags.forEach(t => {
+                    tagCounts[t] = (tagCounts[t] || 0) + 1 + (p.type === 'npc' ? 5 : 0);
+                });
+            });
+
+            // จัดอันดับ Top 10
+            let sortedTags = Object.keys(tagCounts).sort((a,b) => tagCounts[b] - tagCounts[a]).slice(0, 10);
+
+            if(sortedTags.length === 0) {
+                sortedTags = ["#หวีดผลงาน", "#หวีดศิลปิน", "#AB"];
+            }
+
+            trendingContainer.innerHTML = "";
+            sortedTags.forEach((tag, index) => {
+                trendingContainer.innerHTML += `
+                    <div onclick="searchTag('${tag}')" class="flex justify-between items-center p-2 hover:bg-zinc-900 rounded-lg cursor-pointer">
+                        <div>
+                            <div class="text-xs text-zinc-500">อันดับที่ ${index + 1} · กำลังเป็นกระแส</div>
+                            <div class="font-bold text-sm text-pink-500">${tag}</div>
+                        </div>
+                        <span class="text-xs text-zinc-500">${tagCounts[tag] || 15} โพสต์</span>
+                    </div>
+                `;
+            });
+        }
+
+        function searchTag(tag) {
+            document.getElementById('search-box').value = tag;
+            document.getElementById('search-users-results').classList.add('hidden');
+            document.getElementById('trending-hashtags').parentElement.classList.add('hidden');
+            
+            const hashtagPostsSection = document.getElementById('hashtag-posts-section');
+            hashtagPostsSection.classList.remove('hidden');
+            document.getElementById('current-hashtag-title').innerText = `ผลการค้นหาสำหรับ ${tag}`;
+
+            const listContainer = document.getElementById('hashtag-posts-list');
+            listContainer.innerHTML = "";
+
+            // แสดงโพสต์ทั้งหมดที่ใช้แฮชแท็กนี้ (รวมโพสต์ปั่นกระแสจาก NPC)
+            const matchedPosts = posts.filter(p => p.text.includes(tag));
+            
+            if(matchedPosts.length === 0) {
+                listContainer.innerHTML = `<div class="text-zinc-500 text-sm p-4">ยังไม่มีโพสต์สำหรับแฮชแท็กนี้</div>`;
+                return;
+            }
+
+            matchedPosts.forEach(post => {
+                listContainer.innerHTML += `
+                    <div class="p-4 border-b border-zinc-800 flex gap-3">
+                        <div class="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center font-bold shrink-0">${post.author[0]}</div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm">${post.author}</span>
+                                <span class="text-zinc-500 text-xs">${post.username} · ${post.time}</span>
+                            </div>
+                            <p class="text-sm mt-1">${formatHashtags(post.text)}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function clearHashtagSearch() {
+            document.getElementById('search-box').value = "";
+            document.getElementById('hashtag-posts-section').classList.add('hidden');
+            document.getElementById('search-users-results').classList.remove('hidden');
+            document.getElementById('trending-hashtags').parentElement.classList.remove('hidden');
+            renderTrendingHashtags();
+        }
+
+        // --- PROFILE TABS & MODAL ---
+        function switchProfileTab(subTab) {
+            activeProfileTab = subTab;
+            if(subTab === 'my-posts') {
+                document.getElementById('btn-my-posts').className = "flex-1 py-3 text-center border-b-2 border-white font-semibold";
+                document.getElementById('btn-liked-posts').className = "flex-1 py-3 text-center text-zinc-500 border-b-2 border-transparent font-semibold";
+            } else {
+                document.getElementById('btn-liked-posts').className = "flex-1 py-3 text-center border-b-2 border-white font-semibold";
+                document.getElementById('btn-my-posts').className = "flex-1 py-3 text-center text-zinc-500 border-b-2 border-transparent font-semibold";
+            }
+            renderProfilePosts();
+        }
+
+        function renderProfilePosts() {
+            const container = document.getElementById('profile-posts-container');
+            container.innerHTML = "";
+
+            let targetPosts = [];
+            if(activeProfileTab === 'my-posts') {
+                targetPosts = posts.filter(p => p.username === currentUser.username);
+            } else {
+                targetPosts = posts.filter(p => p.likedByMe);
+            }
+
+            if(targetPosts.length === 0) {
+                container.innerHTML = `<div class="text-center text-zinc-500 py-10 text-sm">ไม่มีโพสต์ในหมวดนี้</div>`;
+                return;
+            }
+
+            targetPosts.forEach(post => {
+                container.innerHTML += `
+                    <div class="p-4 border-b border-zinc-800 flex gap-3">
+                        <div class="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center font-bold shrink-0">U</div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm">${post.author}</span>
+                                <span class="text-zinc-500 text-xs">${post.username} · ${post.time}</span>
+                            </div>
+                            <p class="text-sm mt-1">${formatHashtags(post.text)}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openFollowingModal() {
+            const list = document.getElementById('following-list');
+            list.innerHTML = "";
+            followingList.forEach(u => {
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-zinc-900 p-3 rounded-xl">
+                        <div>
+                            <div class="font-bold text-sm">${u.name}</div>
+                            <div class="text-zinc-500 text-xs">${u.username}</div>
+                        </div>
+                        <span class="text-xs bg-zinc-800 px-3 py-1 rounded-full text-zinc-300">กำลังติดตาม</span>
+                    </div>
+                `;
+            });
+            document.getElementById('following-modal').classList.remove('hidden');
+        }
+
+        function closeFollowingModal() {
+            document.getElementById('following-modal').classList.add('hidden');
+        }
+
+        // เริ่มต้นการทำงานระบบ
+        initFollowers();
+        renderFeed();
+        renderTrendingHashtags();
+    </script>
+</body>
+</html>
