@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual STORE - ร้านค้าและคลังสินค้า</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-[#0b0714] text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-[#120d20] border border-purple-500/20 rounded-[2.5rem] shadow-2xl overflow-hidden backdrop-blur-2xl p-5 flex flex-col h-[85vh] max-h-[850px]">
+        
+        <!-- Top Bar -->
+        <div class="flex justify-between items-center mb-4 px-1 shrink-0">
+            <a href="home.html" class="bg-[#1b142e] border border-purple-500/20 text-slate-300 text-xs px-4 py-2 rounded-full font-medium flex items-center gap-1.5 hover:border-pink-500/40 transition-all cursor-pointer no-underline">
+                <span>←</span> หน้าหลัก
+            </a>
+            <div class="flex items-center gap-2">
+                <div class="bg-[#1b142e] border border-purple-500/20 text-pink-400 text-xs px-3 py-2 rounded-full font-bold tracking-wider">
+                    STORE
+                </div>
+            </div>
+        </div>
+
+        <!-- Wallet Balance Banner -->
+        <div class="bg-gradient-to-r from-[#1a112d] via-[#251238] to-[#1a112d] border border-purple-500/30 rounded-2xl p-3.5 mb-4 flex items-center justify-between shrink-0 shadow-inner">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">💰</span>
+                <div>
+                    <span class="text-[10px] text-slate-400 block">ยอดเงินคงเหลือในบัญชีธนาคาร</span>
+                    <span id="userBalanceDisplay" class="text-base font-bold text-emerald-400">กำลังโหลด...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Category Navigation Tabs -->
+        <div class="grid grid-cols-3 gap-2 mb-4 shrink-0">
+            <button onclick="switchStoreTab('fanclub')" id="tabFanclubBtn" 
+                class="bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-2.5 px-2 rounded-2xl shadow-lg shadow-purple-900/30 flex flex-col items-center justify-center text-xs transition-all cursor-pointer">
+                <span>🛍️</span> Fan Club
+            </button>
+            <button onclick="switchStoreTab('social')" id="tabSocialBtn" 
+                class="bg-[#1b142e] border border-purple-500/20 text-slate-300 font-medium py-2.5 px-2 rounded-2xl hover:bg-[#231a3b] flex flex-col items-center justify-center text-xs transition-all cursor-pointer">
+                <span>📈</span> Social Shop
+            </button>
+            <button onclick="switchStoreTab('inventory')" id="tabInventoryBtn" 
+                class="bg-[#1b142e] border border-purple-500/20 text-slate-300 font-medium py-2.5 px-2 rounded-2xl hover:bg-[#231a3b] flex flex-col items-center justify-center text-xs transition-all cursor-pointer">
+                <span>🎒</span> คลังสินค้า
+            </button>
+        </div>
+
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto no-scrollbar space-y-4 pr-1">
+
+            <!-- 1. FAN CLUB SHOP SECTION -->
+            <div id="sectionFanclub" class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-semibold text-pink-300 flex items-center gap-1.5">
+                        <span>✨</span> สินค้า Official
+                    </h2>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="relative">
+                    <input type="text" id="productSearchInput" oninput="filterProducts()" placeholder="🔍 ค้นหาสินค้า, ค่ายเพลง, วง, หรือดารา..." 
+                        class="w-full bg-[#161025] border border-purple-500/20 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 transition-all">
+                </div>
+
+                <div id="fanclubProductList" class="grid grid-cols-2 gap-3">
+                    <!-- Product 1 -->
+                    <div class="product-card bg-[#161025] border border-purple-500/20 rounded-2xl p-3 flex flex-col justify-between group hover:border-pink-500/40 transition-all" 
+                         data-name="Limited Photocard Set" data-agency="SOLNIGHT Ent." data-group="SOLNIGHT">
+                        <div>
+                            <div class="w-full h-28 bg-[#110c1c] rounded-xl mb-2.5 overflow-hidden relative flex items-center justify-center text-3xl">
+                                🖼️
+                            </div>
+                            <span class="text-[10px] bg-purple-500/10 text-purple-300 px-2 py-0.5 rounded-md font-medium">SOLNIGHT Ent.</span>
+                            <h3 class="text-xs font-bold text-white mt-1 line-clamp-1">Limited Photocard Set</h3>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-purple-500/10 flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-400">350 G</span>
+                            <button onclick="buyFanclubItem('Limited Photocard Set', 350, 'SOLNIGHT Ent.')" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-[11px] font-semibold px-3 py-1.5 rounded-xl cursor-pointer transition-all">
+                                ซื้อสินค้า
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Product 2 -->
+                    <div class="product-card bg-[#161025] border border-purple-500/20 rounded-2xl p-3 flex flex-col justify-between group hover:border-pink-500/40 transition-all" 
+                         data-name="Official Lightstick" data-agency="LUMISTAR" data-group="LUMISTAR">
+                        <div>
+                            <div class="w-full h-28 bg-[#110c1c] rounded-xl mb-2.5 overflow-hidden relative flex items-center justify-center text-3xl">
+                                🎤
+                            </div>
+                            <span class="text-[10px] bg-purple-500/10 text-purple-300 px-2 py-0.5 rounded-md font-medium">LUMISTAR</span>
+                            <h3 class="text-xs font-bold text-white mt-1 line-clamp-1">Official Lightstick</h3>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-purple-500/10 flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-400">1,500 G</span>
+                            <button onclick="buyFanclubItem('Official Lightstick', 1500, 'LUMISTAR')" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-[11px] font-semibold px-3 py-1.5 rounded-xl cursor-pointer transition-all">
+                                ซื้อสินค้า
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. SOCIAL SHOP SECTION -->
+            <div id="sectionSocial" class="hidden space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                        <span>📈</span> ร้านค้าเพิ่มผู้ติดตามโซเชียล
+                    </h2>
+                </div>
+
+                <!-- Sub-tabs for Social Apps -->
+                <div class="grid grid-cols-3 gap-1.5 bg-[#161025] p-1.5 rounded-2xl border border-purple-500/20">
+                    <button onclick="switchSocialApp('slink')" id="subTabSlink" class="bg-purple-600/30 text-pink-200 text-xs font-semibold py-1.5 rounded-xl transition-all cursor-pointer">S-link</button>
+                    <button onclick="switchSocialApp('xlink')" id="subTabXlink" class="bg-transparent text-slate-400 text-xs font-medium py-1.5 rounded-xl transition-all cursor-pointer">X-link</button>
+                    <button onclick="switchSocialApp('ulink')" id="subTabUlink" class="bg-transparent text-slate-400 text-xs font-medium py-1.5 rounded-xl transition-all cursor-pointer">U-link</button>
+                </div>
+
+                <!-- Social Packages Content -->
+                <div class="space-y-2.5">
+                    <div class="bg-[#161025] border border-purple-500/20 rounded-2xl p-3.5 flex items-center justify-between">
+                        <div>
+                            <span id="socialAppNameLabel" class="text-[10px] font-bold text-pink-400 tracking-wider">S-LINK PACK</span>
+                            <h3 class="text-sm font-bold text-white mt-0.5">+1 ผู้ติดตาม</h3>
+                        </div>
+                        <button onclick="buyFollowers(1, 10)" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer shadow-lg shadow-emerald-950/30 transition-all">
+                            10 G
+                        </button>
+                    </div>
+
+                    <div class="bg-[#161025] border border-purple-500/20 rounded-2xl p-3.5 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-pink-400 tracking-wider">S-LINK PACK</span>
+                            <h3 class="text-sm font-bold text-white mt-0.5">+10 ผู้ติดตาม</h3>
+                        </div>
+                        <button onclick="buyFollowers(10, 80)" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer shadow-lg shadow-emerald-950/30 transition-all">
+                            80 G
+                        </button>
+                    </div>
+
+                    <div class="bg-[#161025] border border-purple-500/20 rounded-2xl p-3.5 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-pink-400 tracking-wider">S-LINK PACK</span>
+                            <h3 class="text-sm font-bold text-white mt-0.5">+100 ผู้ติดตาม</h3>
+                        </div>
+                        <button onclick="buyFollowers(100, 600)" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer shadow-lg shadow-emerald-950/30 transition-all">
+                            600 G
+                        </button>
+                    </div>
+
+                    <div class="bg-[#161025] border border-purple-500/20 rounded-2xl p-3.5 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-pink-400 tracking-wider">S-LINK PACK</span>
+                            <h3 class="text-sm font-bold text-white mt-0.5">+1,000 ผู้ติดตาม</h3>
+                        </div>
+                        <button onclick="buyFollowers(1000, 500)" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer shadow-lg shadow-emerald-950/30 transition-all">
+                            500 G
+                        </button>
+                    </div>
+
+                    <div class="bg-[#161025] border border-purple-500/20 rounded-2xl p-3.5 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-pink-400 tracking-wider">S-LINK PACK</span>
+                            <h3 class="text-sm font-bold text-white mt-0.5">+5,000 ผู้ติดตาม</h3>
+                        </div>
+                        <button onclick="buyFollowers(5000, 2000)" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer shadow-lg shadow-emerald-950/30 transition-all">
+                            2,000 G
+                        </button>
+                    </div>
+
+                    <div class="bg-[#161025] border border-purple-500/20 rounded-2xl p-3.5 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-pink-400 tracking-wider">S-LINK PACK</span>
+                            <h3 class="text-sm font-bold text-white mt-0.5">+10,000 ผู้ติดตาม</h3>
+                        </div>
+                        <button onclick="buyFollowers(10000, 3500)" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer shadow-lg shadow-emerald-950/30 transition-all">
+                            3,500 G
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. INVENTORY SECTION -->
+            <div id="sectionInventory" class="hidden space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-semibold text-emerald-300 flex items-center gap-1.5">
+                        <span>🎒</span> คลังสินค้าสะสมของคุณ
+                    </h2>
+                    <span id="inventoryCount" class="text-[10px] text-slate-400">0 รายการ</span>
+                </div>
+
+                <div id="inventoryList" class="space-y-2">
+                    <p class="text-[11px] text-slate-500 text-center py-6">คลังสินค้าของคุณยังว่างเปล่า</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Custom Alert Modal (แทนน้อง alert แบบเดิม) -->
+    <div id="customAlertModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-[#130d22] border border-pink-500/30 w-full max-w-xs rounded-[2rem] p-6 shadow-2xl text-center space-y-4 relative">
+            <div id="alertIcon" class="w-12 h-12 bg-pink-500/20 text-pink-400 border border-pink-500/30 rounded-full flex items-center justify-center mx-auto text-xl font-bold shadow-lg">⚠️</div>
+            <div class="space-y-1">
+                <h3 id="alertTitle" class="text-sm font-bold text-white">แจ้งเตือน</h3>
+                <p id="alertMessage" class="text-xs text-slate-300 leading-relaxed"></p>
+            </div>
+            <button onclick="closeCustomAlert()" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:opacity-90 text-white font-semibold py-2.5 rounded-xl transition-all cursor-pointer text-xs shadow-lg shadow-pink-900/30">
+                เข้าใจแล้ว
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://adyyqewxqxaexwezgvqj.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_ueq3KXEUVLeip8dLfG4sDg_D7KLzQ1a';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUserEmail = '';
+        let currentAccount = {
+            email: '',
+            account_number: '',
+            account_name: '',
+            balance: 0.00
+        };
+
+        let inventory = [];
+        let activeSocialApp = 'slink';
+
+        // ฟังก์ชันเรียกแสดงป๊อปอัพแจ้งเตือนสุดน่ารักแทนน้อง alert()
+        function showCustomAlert(message, title = "แจ้งเตือน", icon = "⚠️") {
+            document.getElementById('alertTitle').innerText = title;
+            document.getElementById('alertMessage').innerText = message;
+            document.getElementById('alertIcon').innerText = icon;
+            
+            const modal = document.getElementById('customAlertModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCustomAlert() {
+            const modal = document.getElementById('customAlertModal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        async function initStore() {
+            const savedUserObj = localStorage.getItem('vlink_user');
+            if (savedUserObj) {
+                try {
+                    currentUserEmail = JSON.parse(savedUserObj).email || '';
+                } catch(e) {}
+            }
+            if (!currentUserEmail) {
+                currentUserEmail = localStorage.getItem('user_email') || '';
+            }
+
+            if (!currentUserEmail) {
+                showCustomAlert('กรุณาเข้าสู่ระบบก่อนใช้งานร้านค้า', 'ยังไม่ได้เข้าสู่ระบบ', '🔒');
+                setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+                return;
+            }
+
+            let savedInventory = localStorage.getItem('virtual_store_inventory_' + currentUserEmail);
+            if (savedInventory) {
+                inventory = JSON.parse(savedInventory);
+            }
+
+            let { data, error } = await supabaseClient
+                .from('accounts')
+                .select('*')
+                .eq('email', currentUserEmail)
+                .maybeSingle();
+
+            if (!data) {
+                showCustomAlert('ไม่พบข้อมูลบัญชีธนาคารสำหรับอีเมลนี้ กรุณาไปที่หน้าธนาคารเพื่อสร้างบัญชี', 'ไม่พบบัญชี', '🏦');
+                setTimeout(() => { window.location.href = 'virtual-bank.html'; }, 2000);
+                return;
+            }
+
+            currentAccount = data;
+            updateBalanceDisplay();
+            renderInventory();
+            subscribeRealtimeBalance();
+        }
+
+        function updateBalanceDisplay() {
+            document.getElementById('userBalanceDisplay').innerText = parseFloat(currentAccount.balance).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' G';
+        }
+
+        function subscribeRealtimeBalance() {
+            supabaseClient
+                .channel('public:accounts:' + currentAccount.account_number)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'accounts',
+                    filter: `account_number=eq.${currentAccount.account_number}`
+                }, payload => {
+                    if (payload.new) {
+                        currentAccount.balance = payload.new.balance;
+                        updateBalanceDisplay();
+                    }
+                })
+                .subscribe();
+        }
+
+        function switchStoreTab(tab) {
+            const secFanclub = document.getElementById('sectionFanclub');
+            const secSocial = document.getElementById('sectionSocial');
+            const secInventory = document.getElementById('sectionInventory');
+
+            const btnFanclub = document.getElementById('tabFanclubBtn');
+            const btnSocial = document.getElementById('tabSocialBtn');
+            const btnInventory = document.getElementById('tabInventoryBtn');
+
+            secFanclub.classList.add('hidden');
+            secSocial.classList.add('hidden');
+            secInventory.classList.add('hidden');
+
+            const inactiveClass = "bg-[#1b142e] border border-purple-500/20 text-slate-300 font-medium py-2.5 px-2 rounded-2xl hover:bg-[#231a3b] flex flex-col items-center justify-center text-xs transition-all cursor-pointer";
+            const activeClass = "bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-2.5 px-2 rounded-2xl shadow-lg shadow-purple-900/30 flex flex-col items-center justify-center text-xs transition-all cursor-pointer";
+
+            btnFanclub.className = inactiveClass;
+            btnSocial.className = inactiveClass;
+            btnInventory.className = inactiveClass;
+
+            if (tab === 'fanclub') {
+                secFanclub.classList.remove('hidden');
+                btnFanclub.className = activeClass;
+            } else if (tab === 'social') {
+                secSocial.classList.remove('hidden');
+                btnSocial.className = activeClass;
+            } else if (tab === 'inventory') {
+                secInventory.classList.remove('hidden');
+                btnInventory.className = activeClass;
+                renderInventory();
+            }
+        }
+
+        function switchSocialApp(app) {
+            activeSocialApp = app;
+            const btnSlink = document.getElementById('subTabSlink');
+            const btnXlink = document.getElementById('subTabXlink');
+            const btnUlink = document.getElementById('subTabUlink');
+            const appNameLabel = document.getElementById('socialAppNameLabel');
+
+            const inactiveSubClass = "bg-transparent text-slate-400 text-xs font-medium py-1.5 rounded-xl transition-all cursor-pointer";
+            const activeSubClass = "bg-purple-600/30 text-pink-200 text-xs font-semibold py-1.5 rounded-xl transition-all cursor-pointer";
+
+            btnSlink.className = inactiveSubClass;
+            btnXlink.className = inactiveSubClass;
+            btnUlink.className = inactiveSubClass;
+
+            if (app === 'slink') {
+                btnSlink.className = activeSubClass;
+                appNameLabel.innerText = "S-LINK PACK";
+            } else if (app === 'xlink') {
+                btnXlink.className = activeSubClass;
+                appNameLabel.innerText = "X-LINK PACK";
+            } else if (app === 'ulink') {
+                btnUlink.className = activeSubClass;
+                appNameLabel.innerText = "U-LINK PACK";
+            }
+        }
+
+        // ค้นหาสินค้าตามคำค้น
+        function filterProducts() {
+            const query = document.getElementById('productSearchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.product-card');
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name').toLowerCase();
+                const agency = card.getAttribute('data-agency').toLowerCase();
+                const group = card.getAttribute('data-group').toLowerCase();
+                if (name.includes(query) || agency.includes(query) || group.includes(query)) {
+                    card.style.display = "";
+                } else {
+                    card.style.display = "none";
+                }
+            });
+        }
+
+        // ซื้อสินค้า Official และโอนเงินเข้าบัญชีธนาคารของค่ายเพลงอัตโนมัติ
+        async function buyFanclubItem(itemName, price, agencyName) {
+            if (currentAccount.balance < price) {
+                showCustomAlert('ยอดเงินในบัญชีธนาคารของคุณไม่พอสำหรับการซื้อสินค้านี้', 'ยอดเงินไม่พอ', '💳');
+                return;
+            }
+
+            let { data: agencyAcc, error: searchErr } = await supabaseClient
+                .from('accounts')
+                .select('*')
+                .eq('account_name', agencyName)
+                .single();
+
+            if (!agencyAcc) {
+                showCustomAlert(`ไม่พบบัญชีธนาคารของค่ายเพลง "${agencyName}" ในระบบ`, 'ไม่พบบัญชีปลายทาง', '🔍');
+                return;
+            }
+
+            let newBuyerBalance = parseFloat(currentAccount.balance) - price;
+            let newAgencyBalance = parseFloat(agencyAcc.balance) + price;
+
+            let { error: updateBuyerErr } = await supabaseClient
+                .from('accounts')
+                .update({ balance: newBuyerBalance, updated_at: new Date() })
+                .eq('account_number', currentAccount.account_number);
+
+            if (updateBuyerErr) {
+                showCustomAlert('เกิดข้อผิดพลาดในการตัดเงิน กรุณาลองใหม่อีกครั้ง', 'ระบบขัดข้อง', '❌');
+                return;
+            }
+
+            await supabaseClient
+                .from('accounts')
+                .update({ balance: newAgencyBalance, updated_at: new Date() })
+                .eq('account_number', agencyAcc.account_number);
+
+            currentAccount.balance = newBuyerBalance;
+            updateBalanceDisplay();
+
+            inventory.push({
+                id: Date.now(),
+                name: itemName,
+                category: 'Fan Club Shop',
+                purchasedAt: new Date().toLocaleString('th-TH')
+            });
+            localStorage.setItem('virtual_store_inventory_' + currentUserEmail, JSON.stringify(inventory));
+
+            showCustomAlert(`ซื้อ "${itemName}" สำเร็จ! โอนเงินให้ค่าย ${agencyName} เรียบร้อย และเก็บสินค้าเข้าคลังแล้ว`, 'ซื้อสินค้าสำเร็จ', '🎉');
+        }
+
+        // ซื้อผู้ติดตามโดยอ้างอิงจาก email ของผู้ใช้งานจริงผ่านคอลัมน์ email ในตาราง followers
+        async function buyFollowers(amount, price) {
+            if (currentAccount.balance < price) {
+                showCustomAlert('ยอดเงินในบัญชีธนาคารของคุณไม่พอสำหรับการซื้อแพ็กเกจนี้', 'ยอดเงินไม่พอ', '💳');
+                return;
+            }
+
+            let newBalance = parseFloat(currentAccount.balance) - price;
+            
+            // 1. ตัดเงินในบัญชีธนาคาร
+            let { error: bankError } = await supabaseClient
+                .from('accounts')
+                .update({ balance: newBalance, updated_at: new Date() })
+                .eq('account_number', currentAccount.account_number);
+
+            if (bankError) {
+                showCustomAlert('เกิดข้อผิดพลาดในการตัดเงินผ่านธนาคาร', 'ระบบขัดข้อง', '❌');
+                return;
+            }
+
+            currentAccount.balance = newBalance;
+            updateBalanceDisplay();
+
+            // 2. ดึงข้อมูลเดิมจากตาราง followers โดยเช็คจาก email โดยตรง
+            let { data: followerData } = await supabaseClient
+                .from('followers')
+                .select('*')
+                .eq('email', currentUserEmail)
+                .maybeSingle();
+
+            let currentFollowers = 0;
+            if (followerData && followerData[activeSocialApp + '_followers']) {
+                currentFollowers = parseInt(followerData[activeSocialApp + '_followers']);
+            }
+
+            let updatedFollowers = currentFollowers + amount;
+
+            // 3. เตรียมข้อมูลสำหรับ upsert โดยผูกกับ email และใส่ account_number สำรองไว้ด้วย
+            let upsertPayload = {
+                email: currentUserEmail,
+                account_number: currentAccount.account_number,
+                updated_at: new Date()
+            };
+            upsertPayload[activeSocialApp + '_followers'] = updatedFollowers;
+
+            if (!followerData) {
+                upsertPayload['created_at'] = new Date();
+            }
+
+            // 4. บันทึกลงตาราง followers โดยใช้ onConflict กับ email
+            let { error: followerError } = await supabaseClient
+                .from('followers')
+                .upsert(upsertPayload, { onConflict: 'email' });
+
+            if (followerError) {
+                console.error(followerError);
+                showCustomAlert('เกิดข้อผิดพลาดในการอัปเดตยอดผู้ติดตาม', 'ระบบขัดข้อง', '❌');
+                return;
+            }
+
+            showCustomAlert(`เติมผู้ติดตามสำเร็จ! หักเงินผ่าน Virtual Bank และเพิ่ม +${amount.toLocaleString()} ฟอลโลเวอร์ บนแอป ${activeSocialApp.toUpperCase()} เรียบร้อยแล้ว`, 'บูสต์ฟอลโลเวอร์สำเร็จ', '🚀');
+        }
+
+        function renderInventory() {
+            const listContainer = document.getElementById('inventoryList');
+            const countLabel = document.getElementById('inventoryCount');
+            listContainer.innerHTML = '';
+            countLabel.innerText = `${inventory.length} รายการ`;
+
+            if (inventory.length === 0) {
+                listContainer.innerHTML = '<p class="text-[11px] text-slate-500 text-center py-6">คลังสินค้าของคุณยังว่างเปล่า</p>';
+                return;
+            }
+
+            inventory.forEach((item) => {
+                const div = document.createElement('div');
+                div.className = "bg-[#161025] border border-purple-500/20 rounded-2xl p-3.5 flex items-center justify-between";
+                div.innerHTML = `
+                    <div class="items-center gap-3 flex">
+                        <div class="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-lg shrink-0">🎁</div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">${item.name}</h4>
+                            <span class="text-[10px] text-slate-400">ซื้อเมื่อ: ${item.purchasedAt}</span>
+                        </div>
+                    </div>
+                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-xl font-medium">อยู่ในคลัง</span>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        window.onload = initStore;
+    </script>
+</body>
+</html>
