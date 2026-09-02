@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-Link - โซเชียลมีเดียวงการบันเทิง</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-0 sm:p-4">
+
+    <div class="w-full max-w-sm h-screen sm:h-[844px] bg-slate-900 sm:border-8 sm:border-slate-800 sm:rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative">
+        
+        <div class="px-4 py-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex justify-between items-center z-20">
+            <div class="flex items-center space-x-2">
+                <a href="home.html" class="text-slate-400 hover:text-white mr-1"><i class="fa-solid fa-chevron-left"></i></a>
+                <h1 class="text-lg font-black tracking-wider bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent">X-LINK</h1>
+            </div>
+            <div id="header-action-slot"></div>
+        </div>
+
+        <div id="tab-content-container" class="flex-1 overflow-y-auto pb-16 relative">
+            
+            <div id="tab-home" class="tab-pane space-y-4 p-4">
+                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 space-y-3 shadow-md">
+                    <div class="flex items-center space-x-3">
+                        <div id="my-avatar-feed" class="w-10 h-10 rounded-full bg-sky-600/30 border border-sky-500 flex items-center justify-center text-sky-400 font-bold overflow-hidden flex-shrink-0">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <textarea id="new-post-caption" rows="2" class="flex-1 bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 focus:outline-none focus:border-sky-500 resize-none placeholder:text-slate-600" placeholder="เกิดอะไรขึ้นบ้าง? (ใส่ # เพื่อสร้างกระแส เช่น #หวีดค่าย, #ดารา, #AB)"></textarea>
+                    </div>
+
+                    <div id="image-preview-wrapper" class="hidden w-full h-36 rounded-xl overflow-hidden bg-slate-950 relative flex justify-center items-center">
+                        <img id="image-preview-tag" src="" class="h-full w-auto object-contain">
+                        <button type="button" onclick="removeSelectedImage()" class="absolute top-2 right-2 bg-slate-900/80 text-sky-400 p-1 rounded-full text-xs hover:bg-slate-900"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-1 border-t border-slate-800/80">
+                        <input type="file" id="post-image-file" accept="image/*" onchange="previewSelectedImage(event)" class="hidden">
+                        <button type="button" onclick="document.getElementById('post-image-file').click()" class="text-sky-400 hover:text-sky-300 text-xs flex items-center space-x-1">
+                            <i class="fa-solid fa-image"></i> <span>แนบรูปภาพ</span>
+                        </button>
+                        <button onclick="submitNewPost()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-4 py-1.5 rounded-xl text-xs transition-all shadow-lg shadow-sky-600/20">
+                            โพสต์
+                        </button>
+                    </div>
+                </div>
+
+                <div id="feed-posts-list" class="space-y-4">
+                    <div class="text-center text-slate-500 py-10 text-sm">กำลังโหลดฟีด X-Link...</div>
+                </div>
+            </div>
+
+            <div id="tab-search" class="tab-pane hidden p-4 space-y-4">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="search-input" oninput="handleSearch(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 text-slate-200 placeholder:text-slate-600" placeholder="ค้นหา @username หรือ #แฮชแท็ก...">
+                </div>
+
+                <div id="search-results-section" class="space-y-3">
+                    <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-fire"></i> 10 อันดับแฮชแท็กยอดนิยม</h3>
+                    <div id="trending-hashtags-list" class="space-y-2">
+                        <p class="text-center text-slate-500 text-xs py-4">กำลังโหลดแฮชแท็กยอดนิยม...</p>
+                    </div>
+                </div>
+
+                <div id="user-search-results" class="space-y-2"></div>
+            </div>
+
+            <div id="tab-profile" class="tab-pane hidden p-4 space-y-5">
+                <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 text-center relative space-y-3">
+                    <button onclick="openEditProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full text-xs">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+
+                    <div id="profile-avatar-container" class="w-20 h-20 mx-auto rounded-full bg-sky-600/20 border-2 border-sky-500 flex items-center justify-center text-sky-400 text-2xl overflow-hidden shadow-lg">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+
+                    <div>
+                        <h2 id="profile-display-name" class="text-base font-bold text-white">กำลังโหลด...</h2>
+                        <p id="profile-username" class="text-xs text-sky-400">@username</p>
+                    </div>
+
+                    <div class="flex justify-center items-center space-x-8 pt-3 border-t border-slate-800/80 text-xs">
+                        <div class="text-center w-24 cursor-default" title="ผู้ติดตาม">
+                            <span id="profile-stat-followers" class="font-bold text-white block text-sm">0</span>
+                            <span class="text-slate-500">ผู้ติดตาม</span>
+                        </div>
+                        <div onclick="openFollowingModal()" class="text-center w-24 cursor-pointer hover:opacity-80 transition-all">
+                            <span id="profile-stat-following" class="font-bold text-white block text-sm">0</span>
+                            <span class="text-slate-500">กำลังติดตาม</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex border-b border-slate-800 text-xs font-semibold">
+                    <button onclick="switchProfileSubTab('my-posts')" id="subtab-btn-my-posts" class="flex-1 pb-2.5 text-sky-400 border-b-2 border-sky-500 transition-all">โพสต์ของฉัน</button>
+                    <button onclick="switchProfileSubTab('liked-posts')" id="subtab-btn-liked-posts" class="flex-1 pb-2.5 text-slate-500 border-b-2 border-transparent transition-all">โพสต์ที่ถูกใจ</button>
+                </div>
+
+                <div id="profile-sub-content" class="space-y-4">
+                    <div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีโพสต์</div>
+                </div>
+            </div>
+
+            <!-- หน้าโปรไฟล์ของคนอื่น (User Profile View) -->
+            <div id="tab-other-profile" class="tab-pane hidden p-4 space-y-5">
+                <div class="flex items-center mb-2">
+                    <button onclick="goBackFromOtherProfile()" class="text-slate-400 hover:text-white text-xs flex items-center space-x-1 bg-slate-800 px-3 py-1.5 rounded-xl">
+                        <i class="fa-solid fa-chevron-left"></i> <span>กลับ</span>
+                    </button>
+                </div>
+                <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 text-center relative space-y-3">
+                    <div id="other-profile-avatar-container" class="w-20 h-20 mx-auto rounded-full bg-sky-600/20 border-2 border-sky-500 flex items-center justify-center text-sky-400 text-2xl overflow-hidden shadow-lg">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+
+                    <div>
+                        <h2 id="other-profile-display-name" class="text-base font-bold text-white">กำลังโหลด...</h2>
+                        <p id="other-profile-username" class="text-xs text-sky-400">@username</p>
+                    </div>
+
+                    <div id="other-profile-action-container" class="pt-1">
+                        <!-- ปุ่มติดตาม / เลิกติดตาม -->
+                    </div>
+
+                    <div class="flex justify-center items-center space-x-8 pt-3 border-t border-slate-800/80 text-xs">
+                        <div class="text-center w-24 cursor-default">
+                            <span id="other-profile-stat-followers" class="font-bold text-white block text-sm">0</span>
+                            <span class="text-slate-500">ผู้ติดตาม</span>
+                        </div>
+                        <div class="text-center w-24 cursor-default">
+                            <span id="other-profile-stat-following" class="font-bold text-white block text-sm">0</span>
+                            <span class="text-slate-500">กำลังติดตาม</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex border-b border-slate-800 text-xs font-semibold">
+                    <div class="flex-1 pb-2.5 text-sky-400 border-b-2 border-sky-500 text-center">โพสต์ทั้งหมด</div>
+                </div>
+
+                <div id="other-profile-posts-content" class="space-y-4">
+                    <div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีโพสต์</div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="h-14 bg-slate-900 border-t border-slate-800 flex justify-around items-center px-2 absolute bottom-0 left-0 right-0 z-20">
+            <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center justify-center flex-1 text-sky-500 transition-all">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">หน้าหลัก</span>
+            </button>
+            <button onclick="switchTab('search')" id="nav-search" class="flex flex-col items-center justify-center flex-1 text-slate-500 hover:text-slate-300 transition-all">
+                <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">ค้นหา</span>
+            </button>
+            <button onclick="switchTab('profile')" id="nav-profile" class="flex flex-col items-center justify-center flex-1 text-slate-500 hover:text-slate-300 transition-all">
+                <i class="fa-solid fa-user text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">โปรไฟล์</span>
+            </button>
+        </div>
+
+    </div>
+
+    <div id="edit-profile-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-white">แก้ไขโปรไฟล์ X-Link</h3>
+                <button onclick="closeEditProfileModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="flex flex-col items-center space-y-2">
+                <input type="file" id="edit-avatar-file-input" accept="image/*" onchange="previewEditAvatar(event)" class="hidden">
+                <div onclick="document.getElementById('edit-avatar-file-input').click()" class="w-20 h-20 rounded-full bg-sky-600/20 border-2 border-sky-500 flex items-center justify-center text-sky-400 text-2xl overflow-hidden shadow-lg cursor-pointer relative group">
+                    <div id="edit-modal-avatar-preview" class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-user"></i></div>
+                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-camera text-white text-sm"></i></div>
+                </div>
+                <span class="text-[10px] text-slate-400">คลิกที่รูปเพื่อเปลี่ยนรูปโปรไฟล์</span>
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">ชื่อที่แสดง</label>
+                <input type="text" id="edit-display-name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-sky-500 text-slate-200">
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Username (@)</label>
+                <input type="text" id="edit-username" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-sky-500 text-slate-200">
+            </div>
+
+            <button onclick="saveProfileChanges()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-sky-600/20">
+                บันทึกการเปลี่ยนแปลง
+            </button>
+        </div>
+    </div>
+
+    <div id="following-modal" class="hidden fixed inset-0 bg-slate-950 z-50 flex flex-col overflow-hidden">
+        <div class="px-4 py-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+            <button onclick="closeFollowingModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+            <h2 class="text-sm font-bold text-white">กำลังติดตาม</h2>
+            <div class="w-5"></div>
+        </div>
+        <div id="following-list-body" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './supabase-config.js';
+
+        let currentUser = null;
+        let selectedFileBase64 = null;
+        let editAvatarBase64 = null;
+        let activeSubTab = 'my-posts';
+        let viewedUserEmail = null;
+        const CLOUD_NAME = "ncpkgyfz";
+        const UPLOAD_PRESET = "V-link";
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const savedUser = localStorage.getItem('vlink_user');
+            if (!savedUser) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = JSON.parse(savedUser);
+
+            await loadMyProfileData();
+            await loadFeedPosts();
+
+            const savedTab = localStorage.getItem('xlink_active_tab') || 'home';
+            switchTab(savedTab, false);
+
+            setupRealtimeSubscription();
+        });
+
+        function setupRealtimeSubscription() {
+            supabase
+                .channel('x-link-realtime')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'x_link_all' }, () => {
+                    const activeTab = localStorage.getItem('xlink_active_tab');
+                    if (activeTab === 'home') loadFeedPosts();
+                    if (activeTab === 'search') loadTrendingHashtags();
+                    if (activeTab === 'profile') {
+                        loadMyProfileData();
+                        loadProfileSubTabContent();
+                    }
+                    if (activeTab === 'other-profile' && viewedUserEmail) loadOtherProfileData(viewedUserEmail);
+                })
+                .subscribe();
+        }
+
+        window.switchTab = function(tabName, save = true) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            ['home', 'search', 'profile'].forEach(name => {
+                const btn = document.getElementById(`nav-${name}`);
+                if (btn) {
+                    if (name === tabName) {
+                        btn.className = "flex flex-col items-center justify-center flex-1 text-sky-500 transition-all";
+                    } else {
+                        btn.className = "flex flex-col items-center justify-center flex-1 text-slate-500 hover:text-slate-300 transition-all";
+                    }
+                }
+            });
+
+            if (save) localStorage.setItem('xlink_active_tab', tabName);
+
+            if (tabName === 'profile') {
+                loadMyProfileData();
+                loadProfileSubTabContent();
+            } else if (tabName === 'search') {
+                loadTrendingHashtags();
+            }
+        };
+
+        window.previewSelectedImage = function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedFileBase64 = e.target.result;
+                    document.getElementById('image-preview-tag').src = selectedFileBase64;
+                    document.getElementById('image-preview-wrapper').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        window.removeSelectedImage = function() {
+            selectedFileBase64 = null;
+            document.getElementById('post-image-file').value = '';
+            document.getElementById('image-preview-wrapper').classList.add('hidden');
+        };
+
+        async function loadMyProfileData() {
+            try {
+                let searchIdentifier = currentUser.account_number || '';
+                const { data } = await supabase.from('x_link_all').select('*').eq('type', 'user_profile').eq('email', currentUser.email).maybeSingle();
+                
+                if (data) {
+                    currentUser.name = data.name || currentUser.name;
+                    currentUser.username = data.username || currentUser.email.split('@')[0];
+                    currentUser.avatar_url = data.avatar_url || '';
+                    currentUser.account_number = data.account_number || currentUser.account_number || '';
+                    searchIdentifier = currentUser.account_number;
+                } else {
+                    currentUser.username = currentUser.email.split('@')[0];
+                    currentUser.avatar_url = '';
+                    await supabase.from('x_link_all').insert([{ 
+                        type: 'user_profile', 
+                        account_number: searchIdentifier, 
+                        email: currentUser.email, 
+                        name: currentUser.name, 
+                        username: currentUser.username, 
+                        avatar_url: '' 
+                    }]);
+                }
+
+                document.getElementById('profile-display-name').innerText = currentUser.name;
+                document.getElementById('profile-username').innerText = `@${currentUser.username}`;
+                
+                if (currentUser.avatar_url) {
+                    document.getElementById('profile-avatar-container').innerHTML = `<img src="${currentUser.avatar_url}" class="w-full h-full object-cover">`;
+                    document.getElementById('my-avatar-feed').innerHTML = `<img src="${currentUser.avatar_url}" class="w-full h-full object-cover">`;
+                }
+
+                let totalFollowers = 0;
+                const { data: storeF } = await supabase.from('followers').select('xlink_followers').eq('email', currentUser.email).maybeSingle();
+                if (storeF && storeF.xlink_followers) {
+                    totalFollowers = parseInt(storeF.xlink_followers) || 0;
+                } else {
+                    await supabase.from('followers').upsert([{ email: currentUser.email, xlink_followers: 0 }], { onConflict: 'email' });
+                }
+
+                const { count: realF } = await supabase.from('x_link_all').select('*', { count: 'exact', head: true }).eq('type', 'follow').eq('target_email', currentUser.email);
+                document.getElementById('profile-stat-followers').innerText = (totalFollowers + (realF || 0)).toLocaleString();
+
+                const { count: followingCount } = await supabase.from('x_link_all').select('*', { count: 'exact', head: true }).eq('type', 'follow').eq('email', currentUser.email);
+                document.getElementById('profile-stat-following').innerText = followingCount || 0;
+
+            } catch (err) { console.error("Error loading profile:", err); }
+        }
+
+        window.submitNewPost = async function() {
+            const caption = document.getElementById('new-post-caption').value.trim();
+            if (!caption && !selectedFileBase64) {
+                alert("กรุณากรอกข้อความหรือเลือกรูปภาพ");
+                return;
+            }
+
+            let imageUrl = '';
+            if (selectedFileBase64) {
+                const formData = new FormData();
+                const blob = await (await fetch(selectedFileBase64)).blob();
+                formData.append('file', blob);
+                formData.append('upload_preset', UPLOAD_PRESET);
+                try {
+                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+                    const resData = await res.json();
+                    if (resData.secure_url) imageUrl = resData.secure_url;
+                } catch (e) { console.error(e); }
+            }
+
+            const { error } = await supabase.from('x_link_all').insert([{
+                type: 'post',
+                account_number: currentUser.account_number || '',
+                email: currentUser.email,
+                name: currentUser.name,
+                username: currentUser.username,
+                avatar_url: currentUser.avatar_url || '',
+                caption: caption,
+                image_url: imageUrl,
+                likes_count: 0,
+                reposts_count: 0
+            }]);
+
+            if (!error) {
+                document.getElementById('new-post-caption').value = '';
+                removeSelectedImage();
+                loadFeedPosts();
+
+                setTimeout(() => triggerNpcInteractionsAndHashtags(caption), 2000);
+            }
+        };
+
+        async function triggerNpcInteractionsAndHashtags(userCaption) {
+            let followersCount = 0;
+            const { data: storeF } = await supabase.from('followers').select('xlink_followers').eq('email', currentUser.email).maybeSingle();
+            if (storeF && storeF.xlink_followers) followersCount = parseInt(storeF.xlink_followers) || 0;
+            
+            if (followersCount <= 0) return;
+
+            const hashtags = userCaption.match(/#[^\s#]+/g);
+
+            const simulatedLikes = Math.floor(followersCount * (0.2 + Math.random() * 0.3));
+            const simulatedReposts = Math.floor(simulatedLikes * 0.4);
+
+            const { data: myLatestPost } = await supabase.from('x_link_all').select('id').eq('email', currentUser.email).order('created_at', { ascending: false }).limit(1).maybeSingle();
+            if (myLatestPost) {
+                await supabase.from('x_link_all').update({ likes_count: simulatedLikes, reposts_count: simulatedReposts }).eq('id', myLatestPost.id);
+            }
+
+            if (hashtags && hashtags.length > 0) {
+                const sampleTag = hashtags[0];
+                const npcNames = ["แฟนคลับตัวมัม", "มัมหมีน้อง...", "ทีมซัพพอร์ตทางการ", "ติ่งเกาหลีไทยแลนด์", "บ้านคู่ฟินแลนด์"];
+                const npcCaptions = [
+                    `สุดยอดมากกกก ${sampleTag} ต้องแมสแล้วป่ะจุดนี้! 🔥`,
+                    `ตามซัพพอร์ตตลอดไปค่ะคนนี้ ดีงามพระรามแปดมาก ${sampleTag}`,
+                    `ใจเจ็บไปหมดแล้วกับผลงานนี้ ${sampleTag} ปังไม่ไหว! ✨`,
+                    `กรี๊ดดดดด เรือนี้ไม่มีวันล่มจ้า ${sampleTag}`
+                ];
+
+                for (let i = 0; i < Math.min(3, Math.floor(followersCount / 10) + 1); i++) {
+                    const randomName = npcNames[Math.floor(Math.random() * npcNames.length)];
+                    const randomCaption = npcCaptions[Math.floor(Math.random() * npcCaptions.length)];
+                    await supabase.from('x_link_all').insert([{
+                        type: 'post',
+                        account_number: `npc_${Math.random()}`,
+                        email: `npc_fan_${Math.random()}@bot.com`,
+                        name: randomName,
+                        username: `fanclub_${Math.floor(Math.random()*10000)}`,
+                        avatar_url: '',
+                        caption: `${randomCaption} ${sampleTag}`,
+                        likes_count: Math.floor(Math.random() * 50),
+                        reposts_count: Math.floor(Math.random() * 20)
+                    }]);
+                }
+            }
+        }
+
+        async function renderPostCard(post) {
+            const { data: likedCheck } = await supabase.from('x_link_all').select('id').eq('type', 'like').eq('email', currentUser.email).eq('target_email', post.id).maybeSingle();
+            const isLiked = !!likedCheck;
+            const heartClass = isLiked ? "fa-solid text-rose-500" : "fa-regular";
+
+            return `
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 space-y-3 shadow-lg" id="post-card-${post.id}">
+                    <div class="flex items-center justify-between">
+                        <div onclick="viewUserProfile('${post.email}')" class="flex items-center space-x-3 cursor-pointer hover:opacity-85 transition-all">
+                            <div class="w-9 h-9 rounded-full bg-sky-600/30 border border-sky-500 flex items-center justify-center text-sky-400 font-bold overflow-hidden flex-shrink-0">
+                                ${post.avatar_url ? `<img src="${post.avatar_url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user text-xs"></i>'}
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${post.name}</h4>
+                                <p class="text-[10px] text-sky-400">@${post.username || 'user'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${post.caption ? `<p class="text-xs text-slate-200 leading-relaxed">${post.caption}</p>` : ''}
+                    ${post.image_url ? `<div class="w-full rounded-xl overflow-hidden bg-slate-950 flex justify-center items-center"><img src="${post.image_url}" class="w-full h-auto max-h-60 object-contain"></div>` : ''}
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs text-slate-400 px-4">
+                        <button onclick="toggleLike('${post.id}')" class="flex items-center space-x-1.5 hover:text-rose-500 transition-all">
+                            <i class="${heartClass} fa-heart text-sm" id="like-icon-${post.id}"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span>
+                        </button>
+                        <button onclick="toggleRepost('${post.id}')" class="flex items-center space-x-1.5 hover:text-emerald-500 transition-all">
+                            <i class="fa-solid fa-retweet text-sm"></i> <span id="repost-count-${post.id}">${post.reposts_count || 0}</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadFeedPosts() {
+            const container = document.getElementById('feed-posts-list');
+            const { data: posts } = await supabase.from('x_link_all').select('*').eq('type', 'post').order('created_at', { ascending: false });
+
+            if (!posts || posts.length === 0) {
+                container.innerHTML = `<div class="text-center text-slate-500 py-10 text-sm">ยังไม่มีโพสต์ในฟีด</div>`;
+                return;
+            }
+
+            let html = '';
+            for (const p of posts) {
+                html += await renderPostCard(p);
+            }
+            container.innerHTML = html;
+        }
+
+        async function loadTrendingHashtags() {
+            const container = document.getElementById('trending-hashtags-list');
+            const { data: posts } = await supabase.from('x_link_all').select('caption').eq('type', 'post');
+
+            if (!posts || posts.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-500 text-xs py-4">ยังไม่มีแฮชแท็กในระบบ</p>`;
+                return;
+            }
+
+            const hashtagCounts = {};
+            posts.forEach(p => {
+                if (p.caption) {
+                    const matches = p.caption.match(/#[^\s#]+/g);
+                    if (matches) {
+                        matches.forEach(tag => {
+                            hashtagCounts[tag] = (hashtagCounts[tag] || 0) + 1;
+                        });
+                    }
+                }
+            });
+
+            const sortedTags = Object.entries(hashtagCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+            if (sortedTags.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-500 text-xs py-4">ยังไม่มีแฮชแท็กที่เป็นกระแส</p>`;
+                return;
+            }
+
+            let html = '';
+            sortedTags.forEach(([tag, count], index) => {
+                html += `
+                    <div onclick="searchByHashtag('${tag}')" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:border-sky-500/50 transition-all">
+                        <div>
+                            <span class="text-[10px] text-slate-500 font-bold">อันดับที่ ${index + 1}</span>
+                            <h4 class="text-xs font-bold text-sky-400">${tag}</h4>
+                        </div>
+                        <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-1 rounded-full">${count} โพสต์</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        window.searchByHashtag = async function(tag) {
+            document.getElementById('search-input').value = tag;
+            handleSearch(tag);
+        }
+
+        window.handleSearch = async function(query) {
+            const resultsContainer = document.getElementById('user-search-results');
+            const trendingSection = document.getElementById('search-results-section');
+
+            if (!query || query.trim() === '') {
+                trendingSection.classList.remove('hidden');
+                resultsContainer.innerHTML = '';
+                return;
+            }
+
+            trendingSection.classList.add('hidden');
+            const cleanQuery = query.trim();
+
+            if (cleanQuery.startsWith('#')) {
+                const { data: matchedPosts } = await supabase.from('x_link_all').select('*').eq('type', 'post').ilike('caption', `%${cleanQuery}%`).order('created_at', { ascending: false });
+                if (!matchedPosts || matchedPosts.length === 0) {
+                    resultsContainer.innerHTML = `<p class="text-center text-slate-500 text-xs py-8">ไม่พบโพสต์สำหรับแฮชแท็กนี้</p>`;
+                    return;
+                }
+                let html = `<h3 class="text-xs font-bold text-slate-400 mb-2">ผลการค้นหา ${cleanQuery}</h3>`;
+                for (const p of matchedPosts) html += await renderPostCard(p);
+                resultsContainer.innerHTML = html;
+            } else {
+                const searchUser = cleanQuery.replace('@', '');
+                const { data: users } = await supabase.from('x_link_all').select('*').eq('type', 'user_profile').ilike('username', `%${searchUser}%`);
+                if (!users || users.length === 0) {
+                    resultsContainer.innerHTML = `<p class="text-center text-slate-500 text-xs py-8">ไม่พบผู้ใช้งานนี้</p>`;
+                    return;
+                }
+                let html = `<h3 class="text-xs font-bold text-slate-400 mb-2">ผู้ใช้งานที่พบ</h3>`;
+                for (const u of users) {
+                    const isSelf = u.email === currentUser.email;
+                    html += `
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center justify-between shadow-md">
+                            <div onclick="viewUserProfile('${u.email}')" class="flex items-center space-x-3 cursor-pointer flex-1">
+                                <div class="w-10 h-10 rounded-full bg-sky-600/30 border border-sky-500 flex items-center justify-center text-sky-400 font-bold overflow-hidden flex-shrink-0">
+                                    ${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user text-xs"></i>'}
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-bold text-white">${u.name}</h4>
+                                    <p class="text-[10px] text-sky-400">@${u.username}</p>
+                                </div>
+                            </div>
+                            <div>
+                                ${isSelf ? `<span class="text-[10px] text-slate-500 px-3 py-1 bg-slate-800 rounded-xl">ฉันเอง</span>` : `<button id="search-follow-btn-${u.email.replace(/[^a-zA-Z0-9]/g, '_')}" onclick="toggleFollowUser('${u.email}')" class="text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all bg-sky-600 hover:bg-sky-500 text-white">ติดตาม</button>`}
+                            </div>
+                        </div>
+                    `;
+                    if (!isSelf) {
+                        checkIfFollowing(u.email, isFollowing => {
+                            const btnId = `search-follow-btn-${u.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                            const btn = document.getElementById(btnId);
+                            if (btn) {
+                                if (isFollowing) {
+                                    btn.className = "text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700";
+                                    btn.innerText = "กำลังติดตาม";
+                                } else {
+                                    btn.className = "text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all bg-sky-600 hover:bg-sky-500 text-white";
+                                    btn.innerText = "ติดตาม";
+                                }
+                            }
+                        });
+                    }
+                }
+                resultsContainer.innerHTML = html;
+            }
+        };
+
+        async function checkIfFollowing(targetEmail, callback) {
+            const { data } = await supabase.from('x_link_all').select('id').eq('type', 'follow').eq('email', currentUser.email).eq('target_email', targetEmail).maybeSingle();
+            callback(!!data);
+        }
+
+        window.viewUserProfile = async function(email) {
+            if (email === currentUser.email) {
+                switchTab('profile');
+                return;
+            }
+            viewedUserEmail = email;
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-other-profile').classList.remove('hidden');
+            await loadOtherProfileData(email);
+        };
+
+        window.goBackFromOtherProfile = function() {
+            viewedUserEmail = null;
+            switchTab('search');
+        };
+
+        async function loadOtherProfileData(email) {
+            const { data: profile } = await supabase.from('x_link_all').select('*').eq('type', 'user_profile').eq('email', email).maybeSingle();
+            if (!profile) {
+                alert("ไม่พบข้อมูลผู้ใช้นี้");
+                return;
+            }
+
+            document.getElementById('other-profile-display-name').innerText = profile.name || 'ไม่มีชื่อ';
+            document.getElementById('other-profile-username').innerText = `@${profile.username || email.split('@')[0]}`;
+            
+            const avatarContainer = document.getElementById('other-profile-avatar-container');
+            if (profile.avatar_url) {
+                avatarContainer.innerHTML = `<img src="${profile.avatar_url}" class="w-full h-full object-cover">`;
+            } else {
+                avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+            }
+
+            let baseFollowers = 0;
+            const { data: storeF } = await supabase.from('followers').select('xlink_followers').eq('email', email).maybeSingle();
+            if (storeF && storeF.xlink_followers) {
+                baseFollowers = parseInt(storeF.xlink_followers) || 0;
+            }
+
+            const { count: realFollowersCount } = await supabase.from('x_link_all').select('*', { count: 'exact', head: true }).eq('type', 'follow').eq('target_email', email);
+            const { count: followingCount } = await supabase.from('x_link_all').select('*', { count: 'exact', head: true }).eq('type', 'follow').eq('email', email);
+
+            document.getElementById('other-profile-stat-followers').innerText = (baseFollowers + (realFollowersCount || 0)).toLocaleString();
+            document.getElementById('other-profile-stat-following').innerText = followingCount || 0;
+
+            const actionContainer = document.getElementById('other-profile-action-container');
+            const { data: isFollowingData } = await supabase.from('x_link_all').select('id').eq('type', 'follow').eq('email', currentUser.email).eq('target_email', email).maybeSingle();
+            
+            if (isFollowingData) {
+                actionContainer.innerHTML = `<button onclick="toggleFollowUser('${email}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-6 py-1.5 rounded-xl text-xs border border-slate-700 transition-all">กำลังติดตาม</button>`;
+            } else {
+                actionContainer.innerHTML = `<button onclick="toggleFollowUser('${email}')" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-6 py-1.5 rounded-xl text-xs shadow-lg shadow-sky-600/20 transition-all">ติดตาม</button>`;
+            }
+
+            const postsContainer = document.getElementById('other-profile-posts-content');
+            const { data: posts } = await supabase.from('x_link_all').select('*').eq('type', 'post').eq('email', email).order('created_at', { ascending: false });
+            
+            if (!posts || posts.length === 0) {
+                postsContainer.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีโพสต์</div>`;
+                return;
+            }
+
+            let html = '';
+            for (const p of posts) {
+                html += await renderPostCard(p);
+            }
+            postsContainer.innerHTML = html;
+        }
+
+        window.toggleFollowUser = async function(targetEmail) {
+            const { data: existing, error: checkErr } = await supabase
+                .from('x_link_all')
+                .select('id')
+                .eq('type', 'follow')
+                .eq('email', currentUser.email)
+                .eq('target_email', targetEmail)
+                .maybeSingle();
+
+            if (checkErr) {
+                console.error("Check follow error:", checkErr);
+                return;
+            }
+
+            if (existing) {
+                const { error: deleteErr } = await supabase.from('x_link_all').delete().eq('id', existing.id);
+                if (deleteErr) {
+                    console.error("Unfollow error:", deleteErr);
+                    return;
+                }
+            } else {
+                const { error: insertErr } = await supabase.from('x_link_all').insert([{
+                    type: 'follow',
+                    email: currentUser.email,
+                    target_email: targetEmail
+                }]);
+                if (insertErr) {
+                    console.error("Follow error:", insertErr);
+                    return;
+                }
+            }
+
+            if (viewedUserEmail === targetEmail) {
+                await loadOtherProfileData(targetEmail);
+            }
+            const queryInput = document.getElementById('search-input');
+            if (queryInput && queryInput.value) {
+                handleSearch(queryInput.value);
+            }
+            if (document.getElementById('tab-profile').classList.contains('hidden') === false) {
+                loadMyProfileData();
+            }
+            if (document.getElementById('following-modal').classList.contains('hidden') === false) {
+                openFollowingModal();
+            }
+        };
+
+        window.switchProfileSubTab = function(subTab) {
+            activeSubTab = subTab;
+            const btnMy = document.getElementById('subtab-btn-my-posts');
+            const btnLiked = document.getElementById('subtab-btn-liked-posts');
+
+            if (subTab === 'my-posts') {
+                btnMy.className = "flex-1 pb-2.5 text-sky-400 border-b-2 border-sky-500 transition-all";
+                btnLiked.className = "flex-1 pb-2.5 text-slate-500 border-b-2 border-transparent transition-all";
+            } else {
+                btnLiked.className = "flex-1 pb-2.5 text-sky-400 border-b-2 border-sky-500 transition-all";
+                btnMy.className = "flex-1 pb-2.5 text-slate-500 border-b-2 border-transparent transition-all";
+            }
+            loadProfileSubTabContent();
+        };
+
+        async function loadProfileSubTabContent() {
+            const container = document.getElementById('profile-sub-content');
+            if (activeSubTab === 'my-posts') {
+                const { data: posts } = await supabase.from('x_link_all').select('*').eq('type', 'post').eq('email', currentUser.email).order('created_at', { ascending: false });
+                if (!posts || posts.length === 0) {
+                    container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีโพสต์ของคุณ</div>`;
+                    return;
+                }
+                let html = '';
+                for (const p of posts) html += await renderPostCard(p);
+                container.innerHTML = html;
+            } else {
+                const { data: likedRecords } = await supabase.from('x_link_all').select('target_email').eq('type', 'like').eq('email', currentUser.email);
+                if (!likedRecords || likedRecords.length === 0) {
+                    container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีโพสต์ที่ถูกใจ</div>`;
+                    return;
+                }
+                const postIds = likedRecords.map(l => l.target_email);
+                const { data: posts } = await supabase.from('x_link_all').select('*').eq('type', 'post').in('id', postIds).order('created_at', { ascending: false });
+                
+                if (!posts || posts.length === 0) {
+                    container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">ยังไม่มีโพสต์ที่ถูกใจ</div>`;
+                    return;
+                }
+                let html = '';
+                for (const p of posts) html += await renderPostCard(p);
+                container.innerHTML = html;
+            }
+        }
+
+        window.openFollowingModal = async function() {
+            const modal = document.getElementById('following-modal');
+            const body = document.getElementById('following-list-body');
+            modal.classList.remove('hidden');
+            body.innerHTML = `<div class="text-center text-slate-500 py-10 text-xs">กำลังโหลด...</div>`;
+
+            const { data: following } = await supabase.from('x_link_all').select('target_email').eq('type', 'follow').eq('email', currentUser.email);
+            if (!following || following.length === 0) {
+                body.innerHTML = `<div class="text-center text-slate-500 py-10 text-xs">คุณยังไม่ได้ติดตามใครเลย</div>`;
+                return;
+            }
+
+            const emails = following.map(f => f.target_email);
+            const { data: profiles } = await supabase.from('x_link_all').select('*').eq('type', 'user_profile').in('email', emails);
+
+            if (!profiles || profiles.length === 0) {
+                body.innerHTML = `<div class="text-center text-slate-500 py-10 text-xs">คุณยังไม่ได้ติดตามใครเลย</div>`;
+                return;
+            }
+
+            let html = '';
+            for (const u of profiles) {
+                html += `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center justify-between shadow-md">
+                        <div onclick="closeFollowingModal(); viewUserProfile('${u.email}')" class="flex items-center space-x-3 cursor-pointer flex-1">
+                            <div class="w-10 h-10 rounded-full bg-sky-600/30 border border-sky-500 flex items-center justify-center text-sky-400 font-bold overflow-hidden flex-shrink-0">
+                                ${u.avatar_url ? `<img src="${u.avatar_url}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user text-xs"></i>'}
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${u.name}</h4>
+                                <p class="text-[10px] text-sky-400">@${u.username}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <button onclick="toggleFollowUser('${u.email}')" class="text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">กำลังติดตาม</button>
+                        </div>
+                    </div>
+                `;
+            }
+            body.innerHTML = html;
+        };
+
+        window.closeFollowingModal = () => {
+            document.getElementById('following-modal').classList.add('hidden');
+            loadMyProfileData();
+        };
+
+        window.openEditProfileModal = function() {
+            document.getElementById('edit-display-name').value = currentUser.name || '';
+            document.getElementById('edit-username').value = currentUser.username || '';
+            editAvatarBase64 = null;
+            const preview = document.getElementById('edit-modal-avatar-preview');
+            if (currentUser.avatar_url) preview.innerHTML = `<img src="${currentUser.avatar_url}" class="w-full h-full object-cover">`;
+            document.getElementById('edit-profile-modal').classList.remove('hidden');
+        };
+        window.closeEditProfileModal = () => document.getElementById('edit-profile-modal').classList.add('hidden');
+
+        window.previewEditAvatar = function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    editAvatarBase64 = e.target.result;
+                    document.getElementById('edit-modal-avatar-preview').innerHTML = `<img src="${editAvatarBase64}" class="w-full h-full object-cover">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        window.saveProfileChanges = async function() {
+            const newName = document.getElementById('edit-display-name').value.trim();
+            const newUsername = document.getElementById('edit-username').value.trim();
+            let finalAvatarUrl = currentUser.avatar_url || '';
+            const searchIdentifier = currentUser.account_number || '';
+
+            if (editAvatarBase64) {
+                const formData = new FormData();
+                const blob = await (await fetch(editAvatarBase64)).blob();
+                formData.append('file', blob);
+                formData.append('upload_preset', UPLOAD_PRESET);
+                try {
+                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+                    const resData = await res.json();
+                    if (resData.secure_url) finalAvatarUrl = resData.secure_url;
+                } catch (e) { console.error(e); }
+            }
+
+            const { data: existing } = await supabase
+                .from('x_link_all')
+                .select('id')
+                .eq('type', 'user_profile')
+                .eq('email', currentUser.email)
+                .maybeSingle();
+
+            let error = null;
+
+            if (existing && existing.id) {
+                const res = await supabase.from('x_link_all')
+                    .update({ 
+                        name: newName, 
+                        username: newUsername, 
+                        avatar_url: finalAvatarUrl,
+                        account_number: searchIdentifier
+                    })
+                    .eq('id', existing.id);
+                error = res.error;
+            } else {
+                const res = await supabase.from('x_link_all')
+                    .insert([{ 
+                        type: 'user_profile', 
+                        account_number: searchIdentifier,
+                        email: currentUser.email, 
+                        name: newName, 
+                        username: newUsername, 
+                        avatar_url: finalAvatarUrl 
+                    }]);
+                error = res.error;
+            }
+
+            if (error) {
+                console.error("Error saving profile:", error);
+                alert("เกิดข้อผิดพลาดในการบันทึก: " + (error.message || "กรุณาลองใหม่อีกครั้ง"));
+                return;
+            }
+
+            currentUser.name = newName;
+            currentUser.username = newUsername;
+            currentUser.avatar_url = finalAvatarUrl;
+            currentUser.account_number = searchIdentifier;
+            localStorage.setItem('vlink_user', JSON.stringify(currentUser));
+
+            closeEditProfileModal();
+            loadMyProfileData();
+            loadFeedPosts();
+        };
+
+        window.toggleLike = async function(postId) {
+            const { data: postData } = await supabase.from('x_link_all').select('likes_count').eq('id', postId).maybeSingle();
+            if (!postData) return;
+
+            const { data: existingLike } = await supabase.from('x_link_all').select('id').eq('type', 'like').eq('email', currentUser.email).eq('target_email', postId).maybeSingle();
+
+            let currentLikes = postData.likes_count || 0;
+            const icon = document.getElementById(`like-icon-${postId}`);
+            const countSpan = document.getElementById(`like-count-${postId}`);
+
+            if (existingLike) {
+                await supabase.from('x_link_all').delete().eq('id', existingLike.id);
+                currentLikes = Math.max(0, currentLikes - 1);
+                await supabase.from('x_link_all').update({ likes_count: currentLikes }).eq('id', postId);
+                
+                if (icon) icon.className = "fa-regular fa-heart text-sm";
+            } else {
+                await supabase.from('x_link_all').insert([{
+                    type: 'like',
+                    email: currentUser.email,
+                    target_email: postId
+                }]);
+                currentLikes += 1;
+                await supabase.from('x_link_all').update({ likes_count: currentLikes }).eq('id', postId);
+
+                if (icon) icon.className = "fa-solid fa-heart text-sm text-rose-500";
+            }
+            if (countSpan) countSpan.innerText = currentLikes;
+        };
+
+        window.toggleRepost = async function(postId) {
+            const { data: postData } = await supabase.from('x_link_all').select('reposts_count').eq('id', postId).maybeSingle();
+            if (!postData) return;
+
+            let currentReposts = (postData.reposts_count || 0) + 1;
+            await supabase.from('x_link_all').update({ reposts_count: currentReposts }).eq('id', postId);
+
+            const countSpan = document.getElementById(`repost-count-${postId}`);
+            if (countSpan) countSpan.innerText = currentReposts;
+            alert("รีโพสต์สำเร็จ!");
+        };
+    </script>
+</body>
+</html>
